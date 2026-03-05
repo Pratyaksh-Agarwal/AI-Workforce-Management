@@ -1,0 +1,16 @@
+id,name,skill,availability
+1,Alice,ICU,Morning
+2,Bob,Surgery,Night
+3,Charlie,Emergency,Evening
+4,Diana,General,Morning
+5,Eve,ICU,Night
+6,Frank,Surgery,Evening
+7,Grace,Emergency,Morning
+8,Hank,General,Night
+9,Ivy,ICU,Evening
+10,Jack,Surgery,Morning
+11,Karen,Emergency,Night
+12,Leo,General,Evening
+13,Mia,ICU,Morning
+14,Noah,Surgery,Evening
+15,Olivia,Emergency,Night
