@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
