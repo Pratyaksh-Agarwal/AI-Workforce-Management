@@ -17,6 +17,11 @@ DEPT_BASELINES = {
 _employee_cache = None
 
 def fetch_external_data():
+    """
+    Fetch 100 real users from dummyjson, enrich with realistic work metrics.
+    Caches in memory so repeated calls in the same request don't re-fetch.
+    Falls back to local employees.csv if the API is unreachable.
+    """
     global _employee_cache
     if _employee_cache is not None:
         return _employee_cache
@@ -48,6 +53,7 @@ def fetch_external_data():
         df = pd.DataFrame(rows)
         _employee_cache = df
 
+        # Persist to CSV so the app works offline next time
         os.makedirs(DATA_DIR, exist_ok=True)
         df.to_csv(EMPLOYEES_FILE, index=False)
         return df
@@ -60,6 +66,7 @@ def fetch_external_data():
 
 
 def get_workload_df():
+    """Return workload.csv as a DataFrame, seeding it first if missing."""
     if not os.path.exists(WORKLOAD_FILE):
         from model import seed_workload_csv
         seed_workload_csv()
@@ -67,5 +74,6 @@ def get_workload_df():
 
 
 def reset_cache():
+    """Call this to force a fresh API pull on next request."""
     global _employee_cache
     _employee_cache = None
