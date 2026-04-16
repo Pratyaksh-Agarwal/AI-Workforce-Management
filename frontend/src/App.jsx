@@ -1,18 +1,9 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { format, addDays } from "date-fns";
-import {
-  Loader2,
-  MessageSquare,
-  AlertCircle,
-  TrendingUp,
-  Users,
-  Activity,
-  BarChart2,
-} from "lucide-react";
-import Charts from "./charts";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { format, addDays } from 'date-fns';
+import { Calendar, Users, Activity, MessageSquare, Loader2, AlertCircle } from 'lucide-react';
 
-const API_BASE = "http://127.0.0.1:5000/api";
+const API_BASE = 'http://localhost:5000/api';
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
@@ -256,13 +247,13 @@ function App() {
   const [employees, setEmployees] = useState([]);
   const [workload, setWorkload] = useState([]);
   const [schedule, setSchedule] = useState(null);
-  const [aiData, setAiData] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(
-    format(addDays(new Date(), 1), "yyyy-MM-dd"),
-  );
+
+  const [selectedDate, setSelectedDate] = useState(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [error, setError] = useState('');
+
+  const [explanationMap, setExplanationMap] = useState({});
+  const [explainingId, setExplainingId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -277,349 +268,212 @@ function App() {
       ]);
       setEmployees(empRes.data);
       setWorkload(workRes.data);
-      setAiData(aiRes.data);
     } catch (err) {
-      console.error(err);
-      setError("Failed to load data. Is Flask running on port 5000?");
+      console.error("Error fetching data:", err);
+      setError("Failed to load initial data from backend.");
     }
   };
 
   const generateSchedule = async () => {
     setLoading(true);
-    setError("");
+    setError('');
     setSchedule(null);
     try {
       const res = await axios.get(`${API_BASE}/schedule?date=${selectedDate}`);
       setSchedule(res.data);
-      setActiveTab("schedule");
     } catch (err) {
       console.error(err);
-      setError("Failed to generate schedule.");
+      setError("Failed to generate schedule. Ensure backend is running.");
     } finally {
       setLoading(false);
     }
   };
 
-  const overloaded = aiData.filter((e) => e.status === "Overloaded").length;
-  const normal = aiData.filter((e) => e.status === "Normal").length;
-  const underutilized = aiData.filter(
-    (e) => e.status === "Underutilized",
-  ).length;
+  const getExplanation = async (employee) => {
+    if (explanationMap[employee.id]) return; // Already have it
 
-  const kpis = [
-    {
-      label: "Total Staff",
-      value: employees.length,
-      icon: <Users size={18} />,
-      color: "text-indigo-400",
-    },
-    {
-      label: "Data Points",
-      value: workload.length,
-      icon: <Activity size={18} />,
-      color: "text-teal-400",
-    },
-    {
-      label: "Predicted Demand",
-      value: schedule ? schedule.predicted_demand : "-",
-      icon: <TrendingUp size={18} />,
-      color: "text-purple-400",
-    },
-    {
-      label: "Overloaded",
-      value: overloaded,
-      icon: <AlertCircle size={18} />,
-      color: overloaded > 0 ? "text-red-400" : "text-green-400",
-    },
-  ];
+    setExplainingId(employee.id);
+    try {
+      const res = await axios.post(`${API_BASE}/explain`, {
+        name: employee.name,
+        shift: employee.shift,
+        skill: employee.skill
+      });
+      setExplanationMap(prev => ({
+        ...prev,
+        [employee.id]: res.data.explanation
+      }));
+    } catch (err) {
+      console.error(err);
+      setExplanationMap(prev => ({
+        ...prev,
+        [employee.id]: "Error generating explanation."
+      }));
+    } finally {
+      setExplainingId(null);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      {/* ── Top bar ── */}
-      <div className="border-b border-slate-700/50 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">
-              AI Workforce Management
-            </h1>
-            <p className="text-xs text-slate-400">
-              Intelligent scheduling · Fairness-aware · Explainable AI
-            </p>
-          </div>
-          <div className="flex gap-1">
-            {["dashboard", "schedule", "analytics"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition
-                  ${activeTab === tab ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-700"}`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-6 md:p-12">
+      <header className="max-w-6xl mx-auto mb-10 text-center">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-indigo-600">
+          AI Workforce Planning
+        </h1>
+        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          Intelligent forecasting and automated scheduling for your entire team.
+        </p>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* ── KPI row ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {kpis.map((k) => (
-            <div
-              key={k.label}
-              className="bg-slate-800 rounded-xl p-4 flex items-center gap-3"
-            >
-              <div className={`${k.color} opacity-80`}>{k.icon}</div>
+      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* Left Column: Controls & Stats */}
+        <div className="space-y-6">
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center text-slate-800">
+              <Calendar className="mr-2 text-indigo-500" size={20} />
+              Schedule Generator
+            </h2>
+            <div className="space-y-4">
               <div>
-                <p className="text-xs text-slate-400">{k.label}</p>
-                <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Dashboard tab ── */}
-        {activeTab === "dashboard" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Controls */}
-              <div className="bg-slate-800 rounded-xl p-6 space-y-4">
-                <p className="text-sm font-semibold text-white">
-                  Schedule Generator
-                </p>
-
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    {
-                      label: "Overloaded",
-                      val: overloaded,
-                      cls: "bg-red-500/10 text-red-400",
-                    },
-                    {
-                      label: "Normal",
-                      val: normal,
-                      cls: "bg-green-500/10 text-green-400",
-                    },
-                    {
-                      label: "Underutilized",
-                      val: underutilized,
-                      cls: "bg-yellow-500/10 text-yellow-400",
-                    },
-                  ].map((s) => (
-                    <div
-                      key={s.label}
-                      className={`${s.cls} p-2 rounded text-center`}
-                    >
-                      <p className="text-xs opacity-80">{s.label}</p>
-                      <p className="font-bold text-lg">{s.val}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="bg-slate-700/50 p-3 rounded-lg">
-                  <p className="text-indigo-400 text-xs font-medium mb-1">
-                    🧠 AI Insight
-                  </p>
-                  {overloaded > 0 ? (
-                    <p className="text-xs text-slate-300">
-                      {overloaded} employees exceed dept. baseline — consider
-                      redistributing workload before scheduling.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-green-400">
-                      All employees within normal range. Good time to generate a
-                      schedule.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Schedule date
-                  </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full p-2 bg-slate-700 rounded text-white text-sm"
-                  />
-                </div>
-
-                <button
-                  onClick={generateSchedule}
-                  disabled={loading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      Generating...
-                    </>
-                  ) : (
-                    "Generate Schedule"
-                  )}
-                </button>
-
-                {error && (
-                  <p className="text-red-400 text-xs flex items-center gap-1">
-                    <AlertCircle size={12} />
-                    {error}
-                  </p>
-                )}
-              </div>
-
-              {/* Charts */}
-              <div className="lg:col-span-2">
-                <Charts
-                  workload={workload}
-                  employees={employees}
-                  aiData={aiData}
+                <label className="block text-sm font-medium text-slate-700 mb-1">Target Date</label>
+                <input
+                  type="date"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
                 />
               </div>
+              <button
+                onClick={generateSchedule}
+                disabled={loading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all flex justify-center items-center shadow-md disabled:opacity-70"
+              >
+                {loading ? <Loader2 className="animate-spin mr-2" size={20} /> : null}
+                {loading ? 'Generating...' : 'Generate New Schedule'}
+              </button>
             </div>
 
-            {/* Fairness + Dept side by side */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FairnessMeter aiData={aiData} />
-              <div className="md:col-span-2">
-                <DeptAnalytics aiData={aiData} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Schedule tab ── */}
-        {activeTab === "schedule" && (
-          <div>
-            {!schedule ? (
-              <div className="bg-slate-800 rounded-xl p-12 text-center">
-                <TrendingUp size={40} className="text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400">No schedule generated yet.</p>
-                <button
-                  onClick={() => setActiveTab("dashboard")}
-                  className="mt-4 text-indigo-400 text-sm hover:underline"
-                >
-                  Go to dashboard to generate one
-                </button>
-              </div>
-            ) : (
-              <div className="bg-slate-800 rounded-xl overflow-hidden">
-                <div className="p-6 flex justify-between items-center border-b border-slate-700">
-                  <div>
-                    <h2 className="text-lg font-bold">Generated Schedule</h2>
-                    <p className="text-slate-400 text-sm">
-                      {format(new Date(schedule.date), "PPPP")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-xs text-slate-400">Total assigned</p>
-                      <p className="text-indigo-400 font-bold text-xl">
-                        {schedule.predicted_demand}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-700/50 text-slate-300">
-                    <tr>
-                      <th className="p-3 text-left">Employee</th>
-                      <th className="p-3 text-left">Department</th>
-                      <th className="p-3 text-left">Shift</th>
-                      <th className="p-3 text-left">Status</th>
-                      <th className="p-3 text-left">Score</th>
-                      <th className="p-3 text-left">AI Explanation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schedule.schedule.map((emp) => (
-                      <tr
-                        key={emp.id}
-                        className="border-t border-slate-700/50 hover:bg-slate-700/30 transition"
-                      >
-                        <td className="p-3">
-                          <p className="font-medium">{emp.name}</p>
-                          <p className="text-xs text-slate-400">{emp.role}</p>
-                        </td>
-                        <td className="p-3 text-slate-300 text-xs">
-                          {emp.skill}
-                        </td>
-                        <td className="p-3">
-                          <ShiftBadge shift={emp.shift} />
-                        </td>
-                        <td className="p-3">
-                          <StatusBadge status={emp.status} />
-                        </td>
-                        <td className="p-3">
-                          <span className="text-xs text-slate-300 font-mono">
-                            {emp.workload_score}
-                          </span>
-                        </td>
-                        <td className="p-3 max-w-xs">
-                          <ExplainCell emp={emp} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg flex items-start text-sm border border-red-100">
+                <AlertCircle className="shrink-0 mr-2 mt-0.5" size={16} />
+                <p>{error}</p>
               </div>
             )}
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
+              <div className="bg-blue-100 p-3 rounded-full mb-3">
+                <Users className="text-blue-600" size={24} />
+              </div>
+              <h3 className="text-3xl font-bold text-slate-800">{employees.length}</h3>
+              <p className="text-sm text-slate-500 font-medium">Total Staff</p>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
+              <div className="bg-emerald-100 p-3 rounded-full mb-3">
+                <Activity className="text-emerald-600" size={24} />
+              </div>
+              <h3 className="text-3xl font-bold text-slate-800">{workload.length}</h3>
+              <p className="text-sm text-slate-500 font-medium">Data Points</p>
+            </div>
+          </div>
         )}
 
-        {/* ── Analytics tab ── */}
-        {activeTab === "analytics" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FairnessMeter aiData={aiData} />
-              <div className="bg-slate-800 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-3 font-medium uppercase tracking-wide">
-                  Workforce Summary
-                </p>
-                <div className="space-y-2">
-                  {[
-                    { label: "Total employees tracked", value: aiData.length },
-                    {
-                      label: "Overloaded",
-                      value: overloaded,
-                      color: "text-red-400",
-                    },
-                    { label: "Normal", value: normal, color: "text-green-400" },
-                    {
-                      label: "Underutilized",
-                      value: underutilized,
-                      color: "text-yellow-400",
-                    },
-                    {
-                      label: "Avg hours/day",
-                      value: aiData.length
-                        ? (
-                            aiData.reduce((s, e) => s + e.hours_worked, 0) /
-                            aiData.length
-                          ).toFixed(1)
-                        : "-",
-                    },
-                  ].map((r) => (
-                    <div
-                      key={r.label}
-                      className="flex justify-between items-center py-1.5 border-b border-slate-700/50"
-                    >
-                      <span className="text-xs text-slate-400">{r.label}</span>
-                      <span
-                        className={`text-sm font-semibold ${r.color ?? "text-white"}`}
-                      >
-                        {r.value}
-                      </span>
-                    </div>
-                  ))}
+        </div>
+
+        {/* Right Column: Schedule Results */}
+        <div className="lg:col-span-2 space-y-6">
+          {schedule ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-linear-to-r from-indigo-50 to-blue-50 border-b border-slate-200 p-6 flex justify-between items-center sm:flex">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Generated Schedule</h2>
+                  <p className="text-sm text-slate-500">{format(new Date(schedule.date), 'PPPP')}</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-slate-500 font-medium">Predicted Demand</div>
+                  <div className="text-2xl font-bold tracking-tight text-indigo-700">{schedule.predicted_demand} Employees</div>
+                </div>
+              </div>
+
+              <div className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                        <th className="p-4 px-6">Employee</th>
+                        <th className="p-4 px-6">Skill</th>
+                        <th className="p-4 px-6">Assigned Shift</th>
+                        <th className="p-4 px-6">AI Explanation</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {schedule.schedule.length === 0 ? (
+                        <tr>
+                          <td colSpan="4" className="p-8 text-center text-slate-500">
+                            No employees could be scheduled based on constraints.
+                          </td>
+                        </tr>
+                      ) : (
+                        schedule.schedule.map((emp) => (
+                          <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-4 px-6 font-medium text-slate-900">{emp.name}</td>
+                            <td className="p-4 px-6">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {emp.skill}
+                              </span>
+                            </td>
+                            <td className="p-4 px-6">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${emp.shift === 'Morning' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                  emp.shift === 'Evening' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                    'bg-slate-800 text-slate-200 border-slate-700'
+                                }`}>
+                                {emp.shift}
+                              </span>
+                            </td>
+                            <td className="p-4 px-6">
+                              {explanationMap[emp.id] ? (
+                                <p className="text-sm text-slate-600 bg-slate-100 p-3 rounded-lg border border-slate-200">
+                                  "{explanationMap[emp.id]}"
+                                </p>
+                              ) : (
+                                <button
+                                  onClick={() => getExplanation(emp)}
+                                  disabled={explainingId === emp.id}
+                                  className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center transition-colors bg-indigo-50 hover:bg-indigo-100 py-1.5 px-3 rounded-lg"
+                                >
+                                  {explainingId === emp.id ? (
+                                    <><Loader2 className="animate-spin mr-1.5" size={14} /> Think...</>
+                                  ) : (
+                                    <><MessageSquare className="mr-1.5" size={14} /> Explain</>
+                                  )}
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
-            <DeptAnalytics aiData={aiData} />
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 border-dashed p-12 flex flex-col items-center justify-center text-center h-full min-h-100">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <Calendar className="text-slate-400" size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-700 mb-2">No Schedule Active</h3>
+              <p className="text-slate-500 max-w-sm">
+                Select a target date and generate a new workforce schedule to see assignments and AI explanations.
+              </p>
+            </div>
+          )}
+        </div>
+
+      </main>
     </div>
   );
 }
