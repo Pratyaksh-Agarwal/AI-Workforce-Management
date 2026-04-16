@@ -5,6 +5,244 @@ import { Calendar, Users, Activity, MessageSquare, Loader2, AlertCircle } from '
 
 const API_BASE = 'http://localhost:5000/api';
 
+// ── Status badge ─────────────────────────────────────────────────────────────
+function StatusBadge({ status }) {
+  const map = {
+    Overloaded: "bg-red-500/20 text-red-400 border border-red-500/30",
+    Normal: "bg-green-500/20 text-green-400 border border-green-500/30",
+    Underutilized:
+      "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
+  };
+  return (
+    <span
+      className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status] ?? "bg-slate-600 text-slate-300"}`}
+    >
+      {status}
+    </span>
+  );
+}
+
+// ── Shift badge ───────────────────────────────────────────────────────────────
+function ShiftBadge({ shift }) {
+  const map = {
+    Morning: "bg-amber-500/20 text-amber-300",
+    Evening: "bg-indigo-500/20 text-indigo-300",
+    Night: "bg-purple-500/20 text-purple-300",
+  };
+  return (
+    <span
+      className={`px-2 py-1 rounded text-xs font-medium ${map[shift] ?? "bg-slate-600 text-slate-300"}`}
+    >
+      {shift}
+    </span>
+  );
+}
+
+// ── Explain cell ──────────────────────────────────────────────────────────────
+function ExplainCell({ emp }) {
+  const [explanation, setExplanation] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchExplanation = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/explain-assignment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employee: emp.name,
+          department: emp.skill,
+          role: emp.role ?? "",
+          shift: emp.shift,
+          hours_worked: emp.hours_worked ?? 0,
+          tasks_completed: emp.tasks_completed ?? 0,
+          status: emp.status ?? "Normal",
+          workload_score: emp.workload_score ?? 0,
+        }),
+      });
+      if (!res.ok) throw new Error(`Server ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setExplanation(data.explanation);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (explanation) {
+    return (
+      <p className="text-slate-300 text-xs max-w-sm leading-relaxed">
+        {explanation}
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        onClick={fetchExplanation}
+        disabled={loading}
+        className="text-indigo-400 flex items-center text-xs hover:text-indigo-300 disabled:opacity-50 w-fit"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="animate-spin mr-1" size={12} />
+            Thinking...
+          </>
+        ) : (
+          <>
+            <MessageSquare size={12} className="mr-1" />
+            Explain
+          </>
+        )}
+      </button>
+      {error && (
+        <span className="text-red-400 text-xs flex items-center gap-1">
+          <AlertCircle size={10} />
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Department analytics panel ────────────────────────────────────────────────
+function DeptAnalytics({ aiData }) {
+  if (!aiData.length) return null;
+
+  const deptMap = {};
+  aiData.forEach((e) => {
+    if (!deptMap[e.department]) deptMap[e.department] = [];
+    deptMap[e.department].push(e);
+  });
+
+  const depts = Object.entries(deptMap)
+    .map(([dept, emps]) => {
+      const avgHours =
+        emps.reduce((s, e) => s + e.hours_worked, 0) / emps.length;
+      const overloaded = emps.filter((e) => e.status === "Overloaded").length;
+      const under = emps.filter((e) => e.status === "Underutilized").length;
+      const riskScore = Math.min(
+        100,
+        Math.round((overloaded / emps.length) * 60 + (avgHours / 13) * 40),
+      );
+      return {
+        dept,
+        count: emps.length,
+        avgHours: avgHours.toFixed(1),
+        overloaded,
+        under,
+        riskScore,
+      };
+    })
+    .sort((a, b) => b.riskScore - a.riskScore);
+
+  const riskColor = (r) =>
+    r >= 70 ? "text-red-400" : r >= 40 ? "text-yellow-400" : "text-green-400";
+  const barColor = (r) =>
+    r >= 70 ? "bg-red-500" : r >= 40 ? "bg-yellow-500" : "bg-green-500";
+
+  return (
+    <div className="bg-slate-800 rounded-xl p-6">
+      <p className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+        <BarChart2 size={16} className="text-indigo-400" />
+        Department Burnout Risk
+      </p>
+      <div className="space-y-3">
+        {depts.map((d) => (
+          <div key={d.dept} className="bg-slate-700/50 rounded-lg p-3">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <p className="text-xs font-medium text-white">{d.dept}</p>
+                <p className="text-xs text-slate-400">
+                  {d.count} staff · {d.avgHours}h avg
+                </p>
+              </div>
+              <span className={`text-xs font-bold ${riskColor(d.riskScore)}`}>
+                {d.riskScore}/100
+              </span>
+            </div>
+            <div className="w-full bg-slate-600 rounded-full h-1.5 mb-1">
+              <div
+                className={`h-1.5 rounded-full ${barColor(d.riskScore)} transition-all`}
+                style={{ width: `${d.riskScore}%` }}
+              />
+            </div>
+            <div className="flex gap-3 mt-1">
+              {d.overloaded > 0 && (
+                <span className="text-xs text-red-400">
+                  {d.overloaded} overloaded
+                </span>
+              )}
+              {d.under > 0 && (
+                <span className="text-xs text-yellow-400">
+                  {d.under} underutilized
+                </span>
+              )}
+              {d.overloaded === 0 && d.under === 0 && (
+                <span className="text-xs text-green-400">All normal</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Fairness meter ────────────────────────────────────────────────────────────
+function FairnessMeter({ aiData }) {
+  if (!aiData.length) return null;
+  const hours = aiData.map((e) => e.hours_worked);
+  const mean = hours.reduce((a, b) => a + b, 0) / hours.length;
+  const stddev = Math.sqrt(
+    hours.reduce((s, h) => s + (h - mean) ** 2, 0) / hours.length,
+  );
+  const score = Math.max(
+    0,
+    Math.min(100, Math.round(100 - (stddev / mean) * 100)),
+  );
+  const color =
+    score >= 75
+      ? "text-green-400"
+      : score >= 50
+        ? "text-yellow-400"
+        : "text-red-400";
+  const bar =
+    score >= 75 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500";
+  const label =
+    score >= 75
+      ? "Fair distribution"
+      : score >= 50
+        ? "Moderate variance"
+        : "High imbalance";
+
+  return (
+    <div className="bg-slate-800 rounded-xl p-4">
+      <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">
+        Scheduling Fairness
+      </p>
+      <div className="flex items-end gap-2 mb-2">
+        <span className={`text-3xl font-bold ${color}`}>{score}</span>
+        <span className="text-slate-400 text-sm mb-1">/100</span>
+      </div>
+      <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
+        <div
+          className={`h-2 rounded-full ${bar}`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+      <p className="text-xs text-slate-400">
+        {label} · std dev {stddev.toFixed(1)}h
+      </p>
+    </div>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
 function App() {
   const [employees, setEmployees] = useState([]);
   const [workload, setWorkload] = useState([]);
@@ -23,10 +261,12 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const empRes = await axios.get(`${API_BASE}/employees`);
+      const [empRes, workRes, aiRes] = await Promise.all([
+        axios.get(`${API_BASE}/employees`),
+        axios.get(`${API_BASE}/workload`),
+        axios.get(`${API_BASE}/ai-insights`),
+      ]);
       setEmployees(empRes.data);
-
-      const workRes = await axios.get(`${API_BASE}/workload`);
       setWorkload(workRes.data);
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -38,7 +278,6 @@ function App() {
     setLoading(true);
     setError('');
     setSchedule(null);
-    setExplanationMap({});
     try {
       const res = await axios.get(`${API_BASE}/schedule?date=${selectedDate}`);
       setSchedule(res.data);
@@ -140,6 +379,7 @@ function App() {
               <p className="text-sm text-slate-500 font-medium">Data Points</p>
             </div>
           </div>
+        )}
 
         </div>
 
