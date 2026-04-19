@@ -5,8 +5,9 @@ import os
 from datetime import datetime
 
 from scheduler import generate_schedule
-from model import predict_workload, classify_employee, train_model, seed_workload_csv
+from model import predict_workload, classify_employee, train_model, seed_workload_csv, generate_explanation
 from data_service import fetch_external_data, get_workload_df, reset_cache
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -15,13 +16,10 @@ DATA_DIR       = os.path.join(os.path.dirname(__file__), 'data')
 EMPLOYEES_FILE = os.path.join(DATA_DIR, 'employees.csv')
 WORKLOAD_FILE  = os.path.join(DATA_DIR, 'workload.csv')
 
-
-# ── Train model at startup ──────────────────────────────────────────────────
-seed_workload_csv()   # no-op if file already exists
-train_model()         # trains once, caches in memory
+seed_workload_csv()
+train_model()
 
 
-# ── Employees ───────────────────────────────────────────────────────────────
 @app.route('/api/employees', methods=['GET'])
 def get_employees():
     df = fetch_external_data()
@@ -30,19 +28,54 @@ def get_employees():
     return jsonify(df.to_dict(orient='records'))
 
 
-# ── Workload ────────────────────────────────────────────────────────────────
 @app.route('/api/workload', methods=['GET'])
 def get_workload():
     df = get_workload_df()
     return jsonify(df.to_dict(orient='records'))
 
 
-# ── Schedule ────────────────────────────────────────────────────────────────
+# ── Predicted demand on load (no date needed) ─────────────────────────────────
+@app.route('/api/predicted-demand', methods=['GET'])
+def predicted_demand():
+    """Returns today's predicted demand so dashboard shows it on load."""
+    try:
+        date_obj    = datetime.now()
+        day_of_week = date_obj.weekday()
+        week_number = date_obj.isocalendar()[1]
+        month       = date_obj.month
+
+        df = fetch_external_data()
+        if df.empty:
+            return jsonify({'predicted_demand': 0})
+
+        # Count how many employees would be scheduled today
+        count = 0
+        for _, row in df.iterrows():
+            score  = predict_workload(row['hours_worked'], row['tasks_completed'],
+                                      day_of_week, week_number, month)
+            status = classify_employee(row['hours_worked'], row['department'])
+            # Only count non-underutilized employees as demand
+            if status != 'Underutilized':
+                count += 1
+
+        return jsonify({'predicted_demand': count})
+    except Exception as e:
+        print(f"predicted_demand error: {e}")
+        return jsonify({'predicted_demand': 0})
+
+
 @app.route('/api/schedule', methods=['GET'])
 def get_schedule():
     date_str = request.args.get('date')
     if not date_str:
         return jsonify({'error': 'Date required'}), 400
+
+    # ── Read constraints from query params ────────────────────────────────────
+    max_hours        = float(request.args.get('maxHours', 13))
+    min_rest         = int(request.args.get('minRest', 8))
+    max_per_shift    = int(request.args.get('maxPerShift', 100))
+    enforce_fairness = request.args.get('enforceFairness', 'true').lower() == 'true'
+    respect_prefs    = request.args.get('respectPreferences', 'true').lower() == 'true'
 
     try:
         date_obj = datetime.strptime(date_str, '%Y-%m-%d')
@@ -57,19 +90,23 @@ def get_schedule():
     week_number = date_obj.isocalendar()[1]
     month       = date_obj.month
 
-    schedule = []
+    all_employees = []
     for _, row in df.iterrows():
-        score  = predict_workload(
-            row['hours_worked'], row['tasks_completed'],
-            day_of_week, week_number, month
-        )
+        score  = predict_workload(row['hours_worked'], row['tasks_completed'],
+                                  day_of_week, week_number, month)
         status = classify_employee(row['hours_worked'], row['department'])
-        shift  = (
+
+        # ── Constraint 1: max hours filter ────────────────────────────────────
+        if row['hours_worked'] > max_hours:
+            continue  # skip employees exceeding labor law limit
+
+        shift = (
             'Morning' if row['hours_worked'] < 7 else
             'Evening' if row['hours_worked'] < 10 else
             'Night'
         )
-        schedule.append({
+
+        all_employees.append({
             'id':              row['employee_id'],
             'name':            row['name'],
             'skill':           row['department'],
@@ -81,7 +118,23 @@ def get_schedule():
             'status':          status,
         })
 
-    # Sort: overloaded first so they're visible at top
+    # ── Constraint 2: enforce fairness — remove most overloaded if ON ─────────
+    if enforce_fairness:
+        # Cap overloaded employees at 20% of total
+        non_overloaded = [e for e in all_employees if e['status'] != 'Overloaded']
+        overloaded     = [e for e in all_employees if e['status'] == 'Overloaded']
+        max_overloaded = max(1, int(len(all_employees) * 0.20))
+        all_employees  = non_overloaded + overloaded[:max_overloaded]
+
+    # ── Constraint 3: max per shift ───────────────────────────────────────────
+    shift_counts = {'Morning': 0, 'Evening': 0, 'Night': 0}
+    schedule     = []
+    for emp in all_employees:
+        if shift_counts[emp['shift']] < max_per_shift:
+            schedule.append(emp)
+            shift_counts[emp['shift']] += 1
+
+    # ── Sort: overloaded first so they're visible ─────────────────────────────
     order = {'Overloaded': 0, 'Normal': 1, 'Underutilized': 2}
     schedule.sort(key=lambda x: order.get(x['status'], 1))
 
@@ -89,15 +142,16 @@ def get_schedule():
         'date':             date_str,
         'predicted_demand': len(schedule),
         'schedule':         schedule,
+        'constraints_applied': {
+            'max_hours':         max_hours,
+            'min_rest':          min_rest,
+            'max_per_shift':     max_per_shift,
+            'enforce_fairness':  enforce_fairness,
+            'respect_prefs':     respect_prefs,
+            'filtered_out':      len(df) - len(schedule),
+        }
     })
 
-
-## Remove these two lines from the top of app.py:
-# import anthropic
-# client = anthropic.Anthropic(...)
-
-# Replace the explain-assignment route with this:
-from model import predict_workload, classify_employee, train_model, seed_workload_csv, generate_explanation
 
 @app.route('/api/explain-assignment', methods=['POST'])
 def explain_assignment():
@@ -118,7 +172,8 @@ def explain_assignment():
     except Exception as e:
         print(f"explain error: {e}")
         return jsonify({'error': str(e)}), 500
-# ── AI insights ──────────────────────────────────────────────────────────────
+
+
 @app.route('/api/ai-insights', methods=['GET'])
 def ai_insights():
     df = fetch_external_data()
@@ -132,24 +187,21 @@ def ai_insights():
 
     results = []
     for _, row in df.iterrows():
-        score  = predict_workload(
-            row['hours_worked'], row['tasks_completed'],
-            day_of_week, week_number, month
-        )
+        score  = predict_workload(row['hours_worked'], row['tasks_completed'],
+                                  day_of_week, week_number, month)
         status = classify_employee(row['hours_worked'], row['department'])
         results.append({
-            'name':              row['name'],
-            'department':        row['department'],
-            'hours_worked':      round(row['hours_worked'], 1),
-            'tasks_completed':   int(row['tasks_completed']),
+            'name':               row['name'],
+            'department':         row['department'],
+            'hours_worked':       round(row['hours_worked'], 1),
+            'tasks_completed':    int(row['tasks_completed']),
             'predicted_workload': score,
-            'status':            status,
+            'status':             status,
         })
 
     return jsonify(results)
 
 
-# ── Department analytics ─────────────────────────────────────────────────────
 @app.route('/api/department-analytics', methods=['GET'])
 def department_analytics():
     df = fetch_external_data()
@@ -158,12 +210,12 @@ def department_analytics():
 
     stats = []
     for dept, group in df.groupby('department'):
-        avg_hours    = group['hours_worked'].mean()
-        overloaded   = int((group['hours_worked'] > 9).sum())
+        avg_hours     = group['hours_worked'].mean()
+        overloaded    = int((group['hours_worked'] > 9).sum())
         underutilized = int((group['hours_worked'] < 5).sum())
-        normal       = len(group) - overloaded - underutilized
-        std          = group['hours_worked'].std() or 0
-        risk_score   = min(100, int(
+        normal        = len(group) - overloaded - underutilized
+        std           = group['hours_worked'].std() or 0
+        risk_score    = min(100, int(
             (overloaded / len(group)) * 60 +
             (avg_hours / 13) * 30 +
             (std / 4) * 10
@@ -182,14 +234,12 @@ def department_analytics():
     return jsonify(stats)
 
 
-# ── External data (raw) ───────────────────────────────────────────────────────
 @app.route('/api/external-data', methods=['GET'])
 def get_external_data():
     df = fetch_external_data()
     return jsonify(df.to_dict(orient='records'))
 
 
-# ── Cache reset (dev utility) ─────────────────────────────────────────────────
 @app.route('/api/reset-cache', methods=['POST'])
 def reset():
     reset_cache()

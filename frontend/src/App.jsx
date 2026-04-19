@@ -9,12 +9,29 @@ import {
   Users,
   Activity,
   BarChart2,
+  Settings,
+  Shield,
+  Star,
 } from "lucide-react";
 import Charts from "./charts";
 
 const API_BASE = "http://127.0.0.1:5000/api";
 
-// ── Status badge ─────────────────────────────────────────────────────────────
+const DEPT_LIST = [
+  "Engineering",
+  "Support",
+  "Marketing",
+  "Human Resources",
+  "Research and Development",
+  "Product Management",
+  "Accounting",
+  "Legal",
+  "Business Development",
+  "Services",
+];
+
+const SHIFT_PREFS = ["Morning", "Evening", "Night", "Any"];
+
 function StatusBadge({ status }) {
   const map = {
     Overloaded: "bg-red-500/20 text-red-400 border border-red-500/30",
@@ -31,7 +48,6 @@ function StatusBadge({ status }) {
   );
 }
 
-// ── Shift badge ───────────────────────────────────────────────────────────────
 function ShiftBadge({ shift }) {
   const map = {
     Morning: "bg-amber-500/20 text-amber-300",
@@ -47,7 +63,6 @@ function ShiftBadge({ shift }) {
   );
 }
 
-// ── Explain cell ──────────────────────────────────────────────────────────────
 function ExplainCell({ emp }) {
   const [explanation, setExplanation] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -82,13 +97,12 @@ function ExplainCell({ emp }) {
     }
   };
 
-  if (explanation) {
+  if (explanation)
     return (
       <p className="text-slate-300 text-xs max-w-sm leading-relaxed">
         {explanation}
       </p>
     );
-  }
   return (
     <div className="flex flex-col gap-1">
       <button
@@ -118,16 +132,60 @@ function ExplainCell({ emp }) {
   );
 }
 
-// ── Department analytics panel ────────────────────────────────────────────────
+function FairnessMeter({ aiData }) {
+  if (!aiData.length) return null;
+  const hours = aiData.map((e) => e.hours_worked);
+  const mean = hours.reduce((a, b) => a + b, 0) / hours.length;
+  const stddev = Math.sqrt(
+    hours.reduce((s, h) => s + (h - mean) ** 2, 0) / hours.length,
+  );
+  const score = Math.max(
+    0,
+    Math.min(100, Math.round(100 - (stddev / mean) * 100)),
+  );
+  const color =
+    score >= 75
+      ? "text-green-400"
+      : score >= 50
+        ? "text-yellow-400"
+        : "text-red-400";
+  const bar =
+    score >= 75 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500";
+  const label =
+    score >= 75
+      ? "Fair distribution"
+      : score >= 50
+        ? "Moderate variance"
+        : "High imbalance";
+  return (
+    <div className="bg-slate-800 rounded-xl p-4">
+      <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">
+        Scheduling Fairness
+      </p>
+      <div className="flex items-end gap-2 mb-2">
+        <span className={`text-3xl font-bold ${color}`}>{score}</span>
+        <span className="text-slate-400 text-sm mb-1">/100</span>
+      </div>
+      <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
+        <div
+          className={`h-2 rounded-full ${bar}`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+      <p className="text-xs text-slate-400">
+        {label} · std dev {stddev.toFixed(1)}h
+      </p>
+    </div>
+  );
+}
+
 function DeptAnalytics({ aiData }) {
   if (!aiData.length) return null;
-
   const deptMap = {};
   aiData.forEach((e) => {
     if (!deptMap[e.department]) deptMap[e.department] = [];
     deptMap[e.department].push(e);
   });
-
   const depts = Object.entries(deptMap)
     .map(([dept, emps]) => {
       const avgHours =
@@ -176,7 +234,7 @@ function DeptAnalytics({ aiData }) {
             </div>
             <div className="w-full bg-slate-600 rounded-full h-1.5 mb-1">
               <div
-                className={`h-1.5 rounded-full ${barColor(d.riskScore)} transition-all`}
+                className={`h-1.5 rounded-full ${barColor(d.riskScore)}`}
                 style={{ width: `${d.riskScore}%` }}
               />
             </div>
@@ -202,51 +260,230 @@ function DeptAnalytics({ aiData }) {
   );
 }
 
-// ── Fairness meter ────────────────────────────────────────────────────────────
-function FairnessMeter({ aiData }) {
-  if (!aiData.length) return null;
-  const hours = aiData.map((e) => e.hours_worked);
-  const mean = hours.reduce((a, b) => a + b, 0) / hours.length;
-  const stddev = Math.sqrt(
-    hours.reduce((s, h) => s + (h - mean) ** 2, 0) / hours.length,
+// ── HR Constraint Panel ───────────────────────────────────────────────────────
+function HRConstraints({ constraints, setConstraints }) {
+  return (
+    <div className="bg-slate-800 rounded-xl p-6">
+      <p className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+        <Shield size={16} className="text-indigo-400" />
+        HR Constraint Settings
+      </p>
+      <div className="space-y-4">
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Max hours/day (labor law limit)
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={6}
+              max={14}
+              step={0.5}
+              value={constraints.maxHours}
+              onChange={(e) =>
+                setConstraints((c) => ({
+                  ...c,
+                  maxHours: parseFloat(e.target.value),
+                }))
+              }
+              className="flex-1"
+            />
+            <span className="text-white text-sm font-medium w-10">
+              {constraints.maxHours}h
+            </span>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Min rest between shifts (hours)
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={6}
+              max={12}
+              step={1}
+              value={constraints.minRest}
+              onChange={(e) =>
+                setConstraints((c) => ({
+                  ...c,
+                  minRest: parseInt(e.target.value),
+                }))
+              }
+              className="flex-1"
+            />
+            <span className="text-white text-sm font-medium w-10">
+              {constraints.minRest}h
+            </span>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Max staff per shift
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={5}
+              max={50}
+              step={1}
+              value={constraints.maxPerShift}
+              onChange={(e) =>
+                setConstraints((c) => ({
+                  ...c,
+                  maxPerShift: parseInt(e.target.value),
+                }))
+              }
+              className="flex-1"
+            />
+            <span className="text-white text-sm font-medium w-10">
+              {constraints.maxPerShift}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-slate-400">
+            Enforce fairness balancing
+          </label>
+          <button
+            onClick={() =>
+              setConstraints((c) => ({
+                ...c,
+                enforceFairness: !c.enforceFairness,
+              }))
+            }
+            className={`w-10 h-5 rounded-full transition-colors ${constraints.enforceFairness ? "bg-indigo-600" : "bg-slate-600"}`}
+          >
+            <div
+              className={`w-4 h-4 bg-white rounded-full transition-transform mx-0.5 ${constraints.enforceFairness ? "translate-x-5" : "translate-x-0"}`}
+            />
+          </button>
+        </div>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-slate-400">
+            Respect shift preferences
+          </label>
+          <button
+            onClick={() =>
+              setConstraints((c) => ({
+                ...c,
+                respectPreferences: !c.respectPreferences,
+              }))
+            }
+            className={`w-10 h-5 rounded-full transition-colors ${constraints.respectPreferences ? "bg-indigo-600" : "bg-slate-600"}`}
+          >
+            <div
+              className={`w-4 h-4 bg-white rounded-full transition-transform mx-0.5 ${constraints.respectPreferences ? "translate-x-5" : "translate-x-0"}`}
+            />
+          </button>
+        </div>
+        <div className="bg-slate-700/50 rounded-lg p-3 mt-2">
+          <p className="text-xs text-slate-400">Active constraints summary</p>
+          <p className="text-xs text-white mt-1">
+            Max {constraints.maxHours}h/day · {constraints.minRest}h rest ·
+            {constraints.enforceFairness ? " Fairness ON" : " Fairness OFF"} ·
+            {constraints.respectPreferences ? " Prefs ON" : " Prefs OFF"}
+          </p>
+        </div>
+      </div>
+    </div>
   );
-  const score = Math.max(
-    0,
-    Math.min(100, Math.round(100 - (stddev / mean) * 100)),
-  );
-  const color =
-    score >= 75
-      ? "text-green-400"
-      : score >= 50
-        ? "text-yellow-400"
-        : "text-red-400";
-  const bar =
-    score >= 75 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500";
-  const label =
-    score >= 75
-      ? "Fair distribution"
-      : score >= 50
-        ? "Moderate variance"
-        : "High imbalance";
+}
+
+// ── Employee Preference Panel ─────────────────────────────────────────────────
+function EmployeePreferences({ preferences, setPreferences }) {
+  const [name, setName] = useState("");
+  const [dept, setDept] = useState(DEPT_LIST[0]);
+  const [pref, setPref] = useState("Any");
+  const [skills, setSkills] = useState("");
+
+  const add = () => {
+    if (!name.trim()) return;
+    setPreferences((p) => [
+      ...p,
+      { name: name.trim(), dept, shiftPref: pref, skills: skills.trim() },
+    ]);
+    setName("");
+    setSkills("");
+  };
+
+  const remove = (idx) => setPreferences((p) => p.filter((_, i) => i !== idx));
 
   return (
-    <div className="bg-slate-800 rounded-xl p-4">
-      <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">
-        Scheduling Fairness
+    <div className="bg-slate-800 rounded-xl p-6">
+      <p className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+        <Star size={16} className="text-indigo-400" />
+        Employee Preferences
       </p>
-      <div className="flex items-end gap-2 mb-2">
-        <span className={`text-3xl font-bold ${color}`}>{score}</span>
-        <span className="text-slate-400 text-sm mb-1">/100</span>
-      </div>
-      <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
-        <div
-          className={`h-2 rounded-full ${bar}`}
-          style={{ width: `${score}%` }}
+
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Employee name"
+          className="col-span-2 bg-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-400"
+        />
+        <select
+          value={dept}
+          onChange={(e) => setDept(e.target.value)}
+          className="bg-slate-700 rounded px-3 py-2 text-sm text-white"
+        >
+          {DEPT_LIST.map((d) => (
+            <option key={d}>{d}</option>
+          ))}
+        </select>
+        <select
+          value={pref}
+          onChange={(e) => setPref(e.target.value)}
+          className="bg-slate-700 rounded px-3 py-2 text-sm text-white"
+        >
+          {SHIFT_PREFS.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
+        <input
+          value={skills}
+          onChange={(e) => setSkills(e.target.value)}
+          placeholder="Skills (e.g. Python, SQL)"
+          className="col-span-2 bg-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-400"
         />
       </div>
-      <p className="text-xs text-slate-400">
-        {label} · std dev {stddev.toFixed(1)}h
-      </p>
+      <button
+        onClick={add}
+        className="w-full bg-indigo-600 hover:bg-indigo-500 py-2 rounded text-sm font-medium mb-4 transition"
+      >
+        Add Preference
+      </button>
+
+      {preferences.length === 0 && (
+        <p className="text-xs text-slate-500 text-center">
+          No preferences added yet
+        </p>
+      )}
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {preferences.map((p, i) => (
+          <div
+            key={i}
+            className="bg-slate-700/50 rounded-lg p-2 flex justify-between items-start"
+          >
+            <div>
+              <p className="text-xs font-medium text-white">{p.name}</p>
+              <p className="text-xs text-slate-400">
+                {p.dept} · Prefers {p.shiftPref}
+              </p>
+              {p.skills && (
+                <p className="text-xs text-indigo-300 mt-0.5">{p.skills}</p>
+              )}
+            </div>
+            <button
+              onClick={() => remove(i)}
+              className="text-slate-500 hover:text-red-400 text-xs ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -263,21 +500,38 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [preferences, setPreferences] = useState([]);
+  const [constraints, setConstraints] = useState({
+    maxHours: 10,
+    minRest: 8,
+    maxPerShift: 35,
+    enforceFairness: true,
+    respectPreferences: true,
+  });
 
   useEffect(() => {
     fetchData();
   }, []);
-
   const fetchData = async () => {
     try {
-      const [empRes, workRes, aiRes] = await Promise.all([
+      const [empRes, workRes, aiRes, demandRes] = await Promise.all([
         axios.get(`${API_BASE}/employees`),
         axios.get(`${API_BASE}/workload`),
         axios.get(`${API_BASE}/ai-insights`),
+        axios.get(`${API_BASE}/predicted-demand`), // ✅ new
       ]);
       setEmployees(empRes.data);
       setWorkload(workRes.data);
       setAiData(aiRes.data);
+      // ✅ Pre-fill predicted demand so dashboard doesn't show "-"
+      setSchedule(
+        (prev) =>
+          prev ?? {
+            predicted_demand: demandRes.data.predicted_demand,
+            schedule: [],
+            date: null,
+          },
+      );
     } catch (err) {
       console.error(err);
       setError("Failed to load data. Is Flask running on port 5000?");
@@ -289,7 +543,15 @@ function App() {
     setError("");
     setSchedule(null);
     try {
-      const res = await axios.get(`${API_BASE}/schedule?date=${selectedDate}`);
+      const params = new URLSearchParams({
+        date: selectedDate,
+        maxHours: constraints.maxHours,
+        minRest: constraints.minRest,
+        maxPerShift: constraints.maxPerShift,
+        enforceFairness: constraints.enforceFairness,
+        respectPreferences: constraints.respectPreferences,
+      });
+      const res = await axios.get(`${API_BASE}/schedule?${params}`);
       setSchedule(res.data);
       setActiveTab("schedule");
     } catch (err) {
@@ -335,7 +597,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
-      {/* ── Top bar ── */}
+      {/* Top bar */}
       <div className="border-b border-slate-700/50 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
@@ -347,22 +609,24 @@ function App() {
             </p>
           </div>
           <div className="flex gap-1">
-            {["dashboard", "schedule", "analytics"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition
+            {["dashboard", "schedule", "analytics", "hr-settings"].map(
+              (tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition
                   ${activeTab === tab ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-700"}`}
-              >
-                {tab}
-              </button>
-            ))}
+                >
+                  {tab === "hr-settings" ? "HR Settings" : tab}
+                </button>
+              ),
+            )}
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* ── KPI row ── */}
+        {/* KPI row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {kpis.map((k) => (
             <div
@@ -378,16 +642,14 @@ function App() {
           ))}
         </div>
 
-        {/* ── Dashboard tab ── */}
+        {/* ── Dashboard ── */}
         {activeTab === "dashboard" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Controls */}
               <div className="bg-slate-800 rounded-xl p-6 space-y-4">
                 <p className="text-sm font-semibold text-white">
                   Schedule Generator
                 </p>
-
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     {
@@ -415,15 +677,14 @@ function App() {
                     </div>
                   ))}
                 </div>
-
                 <div className="bg-slate-700/50 p-3 rounded-lg">
                   <p className="text-indigo-400 text-xs font-medium mb-1">
                     🧠 AI Insight
                   </p>
                   {overloaded > 0 ? (
                     <p className="text-xs text-slate-300">
-                      {overloaded} employees exceed dept. baseline — consider
-                      redistributing workload before scheduling.
+                      {overloaded} employees exceed dept. baseline —
+                      redistribute before scheduling.
                     </p>
                   ) : (
                     <p className="text-xs text-green-400">
@@ -431,8 +692,18 @@ function App() {
                       schedule.
                     </p>
                   )}
+                  {preferences.length > 0 && (
+                    <p className="text-xs text-indigo-300 mt-1">
+                      {preferences.length} employee preference(s) will be
+                      applied.
+                    </p>
+                  )}
+                  {constraints.enforceFairness && (
+                    <p className="text-xs text-teal-300 mt-1">
+                      Fairness balancing is active.
+                    </p>
+                  )}
                 </div>
-
                 <div>
                   <label className="text-xs text-slate-400 mb-1 block">
                     Schedule date
@@ -444,7 +715,6 @@ function App() {
                     className="w-full p-2 bg-slate-700 rounded text-white text-sm"
                   />
                 </div>
-
                 <button
                   onClick={generateSchedule}
                   disabled={loading}
@@ -459,7 +729,6 @@ function App() {
                     "Generate Schedule"
                   )}
                 </button>
-
                 {error && (
                   <p className="text-red-400 text-xs flex items-center gap-1">
                     <AlertCircle size={12} />
@@ -467,8 +736,6 @@ function App() {
                   </p>
                 )}
               </div>
-
-              {/* Charts */}
               <div className="lg:col-span-2">
                 <Charts
                   workload={workload}
@@ -477,8 +744,6 @@ function App() {
                 />
               </div>
             </div>
-
-            {/* Fairness + Dept side by side */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <FairnessMeter aiData={aiData} />
               <div className="md:col-span-2">
@@ -488,7 +753,7 @@ function App() {
           </div>
         )}
 
-        {/* ── Schedule tab ── */}
+        {/* ── Schedule ── */}
         {activeTab === "schedule" && (
           <div>
             {!schedule ? (
@@ -499,7 +764,7 @@ function App() {
                   onClick={() => setActiveTab("dashboard")}
                   className="mt-4 text-indigo-400 text-sm hover:underline"
                 >
-                  Go to dashboard to generate one
+                  Go to dashboard →
                 </button>
               </div>
             ) : (
@@ -511,16 +776,29 @@ function App() {
                       {format(new Date(schedule.date), "PPPP")}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
+                  <div className="flex gap-6 text-center">
+                    <div>
                       <p className="text-xs text-slate-400">Total assigned</p>
                       <p className="text-indigo-400 font-bold text-xl">
                         {schedule.predicted_demand}
                       </p>
                     </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Max hours limit</p>
+                      <p className="text-teal-400 font-bold text-xl">
+                        {constraints.maxHours}h
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">
+                        Preferences applied
+                      </p>
+                      <p className="text-purple-400 font-bold text-xl">
+                        {preferences.length}
+                      </p>
+                    </div>
                   </div>
                 </div>
-
                 <table className="w-full text-sm">
                   <thead className="bg-slate-700/50 text-slate-300">
                     <tr>
@@ -568,7 +846,7 @@ function App() {
           </div>
         )}
 
-        {/* ── Analytics tab ── */}
+        {/* ── Analytics ── */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -600,6 +878,11 @@ function App() {
                           ).toFixed(1)
                         : "-",
                     },
+                    {
+                      label: "Departments tracked",
+                      value: [...new Set(aiData.map((e) => e.department))]
+                        .length,
+                    },
                   ].map((r) => (
                     <div
                       key={r.label}
@@ -617,6 +900,69 @@ function App() {
               </div>
             </div>
             <DeptAnalytics aiData={aiData} />
+          </div>
+        )}
+
+        {/* ── HR Settings ── */}
+        {activeTab === "hr-settings" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <HRConstraints
+              constraints={constraints}
+              setConstraints={setConstraints}
+            />
+            <EmployeePreferences
+              preferences={preferences}
+              setPreferences={setPreferences}
+            />
+            <div className="md:col-span-2 bg-slate-800 rounded-xl p-6">
+              <p className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <Settings size={16} className="text-indigo-400" />
+                System Architecture
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  {
+                    step: "1",
+                    label: "Data Ingestion",
+                    desc: "dummyjson API + CSV fallback",
+                    color: "bg-indigo-500/20 border-indigo-500/30",
+                  },
+                  {
+                    step: "2",
+                    label: "Demand Prediction",
+                    desc: "RandomForest · 90-day history",
+                    color: "bg-purple-500/20 border-purple-500/30",
+                  },
+                  {
+                    step: "3",
+                    label: "Constraint Modeling",
+                    desc: "Labor laws · Fairness rules",
+                    color: "bg-teal-500/20 border-teal-500/30",
+                  },
+                  {
+                    step: "4",
+                    label: "Schedule Generation",
+                    desc: "Dept-aware · Preference-based",
+                    color: "bg-amber-500/20 border-amber-500/30",
+                  },
+                  {
+                    step: "5",
+                    label: "AI Explainability",
+                    desc: "Rule-based NLG explanations",
+                    color: "bg-green-500/20 border-green-500/30",
+                  },
+                ].map((s) => (
+                  <div
+                    key={s.step}
+                    className={`${s.color} border rounded-xl p-3 text-center`}
+                  >
+                    <p className="text-xs text-slate-400 mb-1">Step {s.step}</p>
+                    <p className="text-sm font-medium text-white">{s.label}</p>
+                    <p className="text-xs text-slate-400 mt-1">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
