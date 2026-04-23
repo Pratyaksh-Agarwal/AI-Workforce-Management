@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Charts from "./charts";
 
-const API_BASE = "http://127.0.0.1:5000/api";
+const API_BASE = "const API_BASE = "https://ai-workforce-management-1.onrender.com/api";";
 
 const DEPT_LIST = [
   "Engineering",
