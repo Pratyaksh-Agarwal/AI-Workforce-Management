@@ -1,11 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { format, addDays } from 'date-fns';
-import { Calendar, Users, Activity, MessageSquare, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { format, addDays } from "date-fns";
+import Tickets from "./Tickets";
+import SeasonalChart from "./SeasonalChart";
+import {
+  Loader2,
+  MessageSquare,
+  AlertCircle,
+  TrendingUp,
+  Users,
+  Activity,
+  BarChart2,
+  Settings,
+  Shield,
+  Star,
+  Ticket,
+} from "lucide-react";
+import Charts from "./charts";
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = "https://ai-workforce-management-1.onrender.com/api";
 
-// ── Status badge ─────────────────────────────────────────────────────────────
+const DEPT_LIST = [
+  "Engineering",
+  "Support",
+  "Marketing",
+  "Human Resources",
+  "Research and Development",
+  "Product Management",
+  "Accounting",
+  "Legal",
+  "Business Development",
+  "Services",
+];
+
+const SHIFT_PREFS = ["Morning", "Evening", "Night", "Any"];
+
 function StatusBadge({ status }) {
   const map = {
     Overloaded: "bg-red-500/20 text-red-400 border border-red-500/30",
@@ -22,7 +51,6 @@ function StatusBadge({ status }) {
   );
 }
 
-// ── Shift badge ───────────────────────────────────────────────────────────────
 function ShiftBadge({ shift }) {
   const map = {
     Morning: "bg-amber-500/20 text-amber-300",
@@ -38,7 +66,6 @@ function ShiftBadge({ shift }) {
   );
 }
 
-// ── Explain cell ──────────────────────────────────────────────────────────────
 function ExplainCell({ emp }) {
   const [explanation, setExplanation] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -73,15 +100,15 @@ function ExplainCell({ emp }) {
     }
   };
 
-  if (explanation) {
+  if (explanation)
     return (
       <p className="text-slate-300 text-xs max-w-sm leading-relaxed">
         {explanation}
       </p>
     );
-  }
   return (
     <div className="flex flex-col gap-1">
+      {/* BUTTON */}
       <button
         onClick={fetchExplanation}
         disabled={loading}
@@ -99,6 +126,20 @@ function ExplainCell({ emp }) {
           </>
         )}
       </button>
+
+      {/* AI BADGE */}
+      <span className="text-xs px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 w-fit">
+        ✦ AI Generated
+      </span>
+
+      {/* 🔥 THIS WAS MISSING */}
+      {explanation && (
+        <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-xs">
+          {explanation}
+        </p>
+      )}
+
+      {/* ERROR */}
       {error && (
         <span className="text-red-400 text-xs flex items-center gap-1">
           <AlertCircle size={10} />
@@ -108,17 +149,60 @@ function ExplainCell({ emp }) {
     </div>
   );
 }
+function FairnessMeter({ aiData }) {
+  if (!aiData.length) return null;
+  const hours = aiData.map((e) => e.hours_worked);
+  const mean = hours.reduce((a, b) => a + b, 0) / hours.length;
+  const stddev = Math.sqrt(
+    hours.reduce((s, h) => s + (h - mean) ** 2, 0) / hours.length,
+  );
+  const score = Math.max(
+    0,
+    Math.min(100, Math.round(100 - (stddev / mean) * 100)),
+  );
+  const color =
+    score >= 75
+      ? "text-green-400"
+      : score >= 50
+        ? "text-yellow-400"
+        : "text-red-400";
+  const bar =
+    score >= 75 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500";
+  const label =
+    score >= 75
+      ? "Fair distribution"
+      : score >= 50
+        ? "Moderate variance"
+        : "High imbalance";
+  return (
+    <div className="bg-slate-800 rounded-xl p-4">
+      <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">
+        Scheduling Fairness
+      </p>
+      <div className="flex items-end gap-2 mb-2">
+        <span className={`text-3xl font-bold ${color}`}>{score}</span>
+        <span className="text-slate-400 text-sm mb-1">/100</span>
+      </div>
+      <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
+        <div
+          className={`h-2 rounded-full ${bar}`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+      <p className="text-xs text-slate-400">
+        {label} · std dev {stddev.toFixed(1)}h
+      </p>
+    </div>
+  );
+}
 
-// ── Department analytics panel ────────────────────────────────────────────────
 function DeptAnalytics({ aiData }) {
   if (!aiData.length) return null;
-
   const deptMap = {};
   aiData.forEach((e) => {
     if (!deptMap[e.department]) deptMap[e.department] = [];
     deptMap[e.department].push(e);
   });
-
   const depts = Object.entries(deptMap)
     .map(([dept, emps]) => {
       const avgHours =
@@ -167,7 +251,7 @@ function DeptAnalytics({ aiData }) {
             </div>
             <div className="w-full bg-slate-600 rounded-full h-1.5 mb-1">
               <div
-                className={`h-1.5 rounded-full ${barColor(d.riskScore)} transition-all`}
+                className={`h-1.5 rounded-full ${barColor(d.riskScore)}`}
                 style={{ width: `${d.riskScore}%` }}
               />
             </div>
@@ -193,51 +277,344 @@ function DeptAnalytics({ aiData }) {
   );
 }
 
-// ── Fairness meter ────────────────────────────────────────────────────────────
-function FairnessMeter({ aiData }) {
-  if (!aiData.length) return null;
-  const hours = aiData.map((e) => e.hours_worked);
-  const mean = hours.reduce((a, b) => a + b, 0) / hours.length;
-  const stddev = Math.sqrt(
-    hours.reduce((s, h) => s + (h - mean) ** 2, 0) / hours.length,
+function HRConstraints({ constraints, setConstraints }) {
+  return (
+    <div className="bg-slate-800 rounded-xl p-6">
+      <p className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+        <Shield size={16} className="text-indigo-400" />
+        HR Constraint Settings
+      </p>
+      <div className="space-y-4">
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Max hours/day (labor law limit)
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={6}
+              max={14}
+              step={0.5}
+              value={constraints.maxHours}
+              onChange={(e) =>
+                setConstraints((c) => ({
+                  ...c,
+                  maxHours: parseFloat(e.target.value),
+                }))
+              }
+              className="flex-1"
+            />
+            <span className="text-white text-sm font-medium w-10">
+              {constraints.maxHours}h
+            </span>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Min rest between shifts (hours)
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={6}
+              max={12}
+              step={1}
+              value={constraints.minRest}
+              onChange={(e) =>
+                setConstraints((c) => ({
+                  ...c,
+                  minRest: parseInt(e.target.value),
+                }))
+              }
+              className="flex-1"
+            />
+            <span className="text-white text-sm font-medium w-10">
+              {constraints.minRest}h
+            </span>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Max staff per shift
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={5}
+              max={50}
+              step={1}
+              value={constraints.maxPerShift}
+              onChange={(e) =>
+                setConstraints((c) => ({
+                  ...c,
+                  maxPerShift: parseInt(e.target.value),
+                }))
+              }
+              className="flex-1"
+            />
+            <span className="text-white text-sm font-medium w-10">
+              {constraints.maxPerShift}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-slate-400">
+            Enforce fairness balancing
+          </label>
+          <button
+            onClick={() =>
+              setConstraints((c) => ({
+                ...c,
+                enforceFairness: !c.enforceFairness,
+              }))
+            }
+            className={`w-10 h-5 rounded-full transition-colors ${constraints.enforceFairness ? "bg-indigo-600" : "bg-slate-600"}`}
+          >
+            <div
+              className={`w-4 h-4 bg-white rounded-full transition-transform mx-0.5 ${constraints.enforceFairness ? "translate-x-5" : "translate-x-0"}`}
+            />
+          </button>
+        </div>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-slate-400">
+            Respect shift preferences
+          </label>
+          <button
+            onClick={() =>
+              setConstraints((c) => ({
+                ...c,
+                respectPreferences: !c.respectPreferences,
+              }))
+            }
+            className={`w-10 h-5 rounded-full transition-colors ${constraints.respectPreferences ? "bg-indigo-600" : "bg-slate-600"}`}
+          >
+            <div
+              className={`w-4 h-4 bg-white rounded-full transition-transform mx-0.5 ${constraints.respectPreferences ? "translate-x-5" : "translate-x-0"}`}
+            />
+          </button>
+        </div>
+        <div className="bg-slate-700/50 rounded-lg p-3 mt-2">
+          <p className="text-xs text-slate-400">Active constraints summary</p>
+          <p className="text-xs text-white mt-1">
+            Max {constraints.maxHours}h/day · {constraints.minRest}h rest ·
+            {constraints.enforceFairness ? " Fairness ON" : " Fairness OFF"} ·
+            {constraints.respectPreferences ? " Prefs ON" : " Prefs OFF"}
+          </p>
+        </div>
+      </div>
+    </div>
   );
-  const score = Math.max(
-    0,
-    Math.min(100, Math.round(100 - (stddev / mean) * 100)),
-  );
-  const color =
-    score >= 75
-      ? "text-green-400"
-      : score >= 50
-        ? "text-yellow-400"
-        : "text-red-400";
-  const bar =
-    score >= 75 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500";
-  const label =
-    score >= 75
-      ? "Fair distribution"
-      : score >= 50
-        ? "Moderate variance"
-        : "High imbalance";
+}
+
+function EmployeePreferences({ preferences, setPreferences }) {
+  const [name, setName] = useState("");
+  const [dept, setDept] = useState(DEPT_LIST[0]);
+  const [pref, setPref] = useState("Any");
+  const [skills, setSkills] = useState("");
+
+  const add = () => {
+    if (!name.trim()) return;
+    setPreferences((p) => [
+      ...p,
+      { name: name.trim(), dept, shiftPref: pref, skills: skills.trim() },
+    ]);
+    setName("");
+    setSkills("");
+  };
+  const remove = (idx) => setPreferences((p) => p.filter((_, i) => i !== idx));
 
   return (
-    <div className="bg-slate-800 rounded-xl p-4">
-      <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wide">
-        Scheduling Fairness
+    <div className="bg-slate-800 rounded-xl p-6">
+      <p className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+        <Star size={16} className="text-indigo-400" />
+        Employee Preferences
       </p>
-      <div className="flex items-end gap-2 mb-2">
-        <span className={`text-3xl font-bold ${color}`}>{score}</span>
-        <span className="text-slate-400 text-sm mb-1">/100</span>
-      </div>
-      <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
-        <div
-          className={`h-2 rounded-full ${bar}`}
-          style={{ width: `${score}%` }}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Employee name"
+          className="col-span-2 bg-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-400"
+        />
+        <select
+          value={dept}
+          onChange={(e) => setDept(e.target.value)}
+          className="bg-slate-700 rounded px-3 py-2 text-sm text-white"
+        >
+          {DEPT_LIST.map((d) => (
+            <option key={d}>{d}</option>
+          ))}
+        </select>
+        <select
+          value={pref}
+          onChange={(e) => setPref(e.target.value)}
+          className="bg-slate-700 rounded px-3 py-2 text-sm text-white"
+        >
+          {SHIFT_PREFS.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
+        <input
+          value={skills}
+          onChange={(e) => setSkills(e.target.value)}
+          placeholder="Skills (e.g. Python, SQL)"
+          className="col-span-2 bg-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-400"
         />
       </div>
-      <p className="text-xs text-slate-400">
-        {label} · std dev {stddev.toFixed(1)}h
-      </p>
+      <button
+        onClick={add}
+        className="w-full bg-indigo-600 hover:bg-indigo-500 py-2 rounded text-sm font-medium mb-4 transition"
+      >
+        Add Preference
+      </button>
+      {preferences.length === 0 && (
+        <p className="text-xs text-slate-500 text-center">
+          No preferences added yet
+        </p>
+      )}
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {preferences.map((p, i) => (
+          <div
+            key={i}
+            className="bg-slate-700/50 rounded-lg p-2 flex justify-between items-start"
+          >
+            <div>
+              <p className="text-xs font-medium text-white">{p.name}</p>
+              <p className="text-xs text-slate-400">
+                {p.dept} · Prefers {p.shiftPref}
+              </p>
+              {p.skills && (
+                <p className="text-xs text-indigo-300 mt-0.5">{p.skills}</p>
+              )}
+            </div>
+            <button
+              onClick={() => remove(i)}
+              className="text-slate-500 hover:text-red-400 text-xs ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function SkillChecker() {
+  const [skills, setSkills] = useState("");
+  const [dept, setDept] = useState(DEPT_LIST[0]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const check = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/skill-match`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skills, department: dept }),
+      });
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Employee skills
+          </label>
+          <input
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            placeholder="e.g. Python, SQL, Management"
+            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Target department
+          </label>
+          <select
+            value={dept}
+            onChange={(e) => setDept(e.target.value)}
+            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none"
+          >
+            {DEPT_LIST.map((d) => (
+              <option key={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={check}
+          disabled={loading}
+          className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium text-white transition cursor-pointer"
+        >
+          {loading ? "Checking..." : "Check Skill Match"}
+        </button>
+      </div>
+
+      {result && (
+        <div className="bg-slate-700/50 rounded-xl p-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <p className="text-sm font-medium text-white">Match Result</p>
+            <span
+              className={`text-sm font-bold ${
+                result.match_score >= 80
+                  ? "text-green-400"
+                  : result.match_score >= 50
+                    ? "text-yellow-400"
+                    : "text-red-400"
+              }`}
+            >
+              {result.match_score}%
+            </span>
+          </div>
+          <div className="w-full bg-slate-600 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all ${
+                result.match_score >= 80
+                  ? "bg-green-500"
+                  : result.match_score >= 50
+                    ? "bg-yellow-500"
+                    : "bg-red-500"
+              }`}
+              style={{ width: `${result.match_score}%` }}
+            />
+          </div>
+          <p
+            className={`text-xs font-medium ${
+              result.match_score >= 80
+                ? "text-green-400"
+                : result.match_score >= 50
+                  ? "text-yellow-400"
+                  : "text-red-400"
+            }`}
+          >
+            {result.recommendation}
+          </p>
+          <div>
+            <p className="text-xs text-slate-400 mb-1">
+              Required for {result.department}:
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {result.required_skills.map((s) => (
+                <span
+                  key={s}
+                  className="px-2 py-0.5 bg-slate-600 text-slate-300 rounded text-xs"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -247,13 +624,22 @@ function App() {
   const [employees, setEmployees] = useState([]);
   const [workload, setWorkload] = useState([]);
   const [schedule, setSchedule] = useState(null);
-
-  const [selectedDate, setSelectedDate] = useState(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
+  const [aiData, setAiData] = useState([]);
+  const [ticketCount, setTicketCount] = useState(0); // ✅ pending ticket count for badge
+  const [selectedDate, setSelectedDate] = useState(
+    format(addDays(new Date(), 1), "yyyy-MM-dd"),
+  );
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const [explanationMap, setExplanationMap] = useState({});
-  const [explainingId, setExplainingId] = useState(null);
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [preferences, setPreferences] = useState([]);
+  const [constraints, setConstraints] = useState({
+    maxHours: 10,
+    minRest: 8,
+    maxPerShift: 35,
+    enforceFairness: true,
+    respectPreferences: true,
+  });
 
   useEffect(() => {
     fetchData();
@@ -261,219 +647,541 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const [empRes, workRes, aiRes] = await Promise.all([
+      const [empRes, workRes, aiRes, demandRes, ticketRes] = await Promise.all([
         axios.get(`${API_BASE}/employees`),
         axios.get(`${API_BASE}/workload`),
         axios.get(`${API_BASE}/ai-insights`),
+        axios.get(`${API_BASE}/predicted-demand`),
+        axios.get(`${API_BASE}/tickets/summary`), // ✅ fetch pending ticket count
       ]);
       setEmployees(empRes.data);
       setWorkload(workRes.data);
+      setAiData(aiRes.data);
+      setTicketCount(ticketRes.data.pending);
+      setSchedule(
+        (prev) =>
+          prev ?? {
+            predicted_demand: demandRes.data.predicted_demand,
+            schedule: [],
+            date: null,
+          },
+      );
     } catch (err) {
-      console.error("Error fetching data:", err);
-      setError("Failed to load initial data from backend.");
+      console.error(err);
+      setError("Failed to load data. Is Flask running on port 5000?");
     }
   };
 
   const generateSchedule = async () => {
     setLoading(true);
-    setError('');
+    setError("");
     setSchedule(null);
     try {
-      const res = await axios.get(`${API_BASE}/schedule?date=${selectedDate}`);
+      const params = new URLSearchParams({
+        date: selectedDate,
+        maxHours: constraints.maxHours,
+        minRest: constraints.minRest,
+        maxPerShift: constraints.maxPerShift,
+        enforceFairness: constraints.enforceFairness,
+        respectPreferences: constraints.respectPreferences,
+      });
+      const res = await axios.get(`${API_BASE}/schedule?${params}`);
       setSchedule(res.data);
+      setActiveTab("schedule");
     } catch (err) {
       console.error(err);
-      setError("Failed to generate schedule. Ensure backend is running.");
+      setError("Failed to generate schedule.");
     } finally {
       setLoading(false);
     }
   };
 
-  const getExplanation = async (employee) => {
-    if (explanationMap[employee.id]) return; // Already have it
+  const overloaded = aiData.filter((e) => e.status === "Overloaded").length;
+  const normal = aiData.filter((e) => e.status === "Normal").length;
+  const underutilized = aiData.filter(
+    (e) => e.status === "Underutilized",
+  ).length;
 
-    setExplainingId(employee.id);
-    try {
-      const res = await axios.post(`${API_BASE}/explain`, {
-        name: employee.name,
-        shift: employee.shift,
-        skill: employee.skill
-      });
-      setExplanationMap(prev => ({
-        ...prev,
-        [employee.id]: res.data.explanation
-      }));
-    } catch (err) {
-      console.error(err);
-      setExplanationMap(prev => ({
-        ...prev,
-        [employee.id]: "Error generating explanation."
-      }));
-    } finally {
-      setExplainingId(null);
-    }
-  };
+  const kpis = [
+    {
+      label: "Total Staff",
+      value: employees.length,
+      icon: <Users size={18} />,
+      color: "text-indigo-400",
+    },
+    {
+      label: "Data Points",
+      value: workload.length,
+      icon: <Activity size={18} />,
+      color: "text-teal-400",
+    },
+    {
+      label: "Predicted Demand",
+      value: schedule ? schedule.predicted_demand : "-",
+      icon: <TrendingUp size={18} />,
+      color: "text-purple-400",
+    },
+    {
+      label: "Overloaded",
+      value: overloaded,
+      icon: <AlertCircle size={18} />,
+      color: overloaded > 0 ? "text-red-400" : "text-green-400",
+    },
+  ];
+
+  // Tab definitions with optional badge
+  const tabs = [
+    { key: "dashboard", label: "Dashboard" },
+    { key: "schedule", label: "Schedule" },
+    { key: "analytics", label: "Analytics" },
+    { key: "hr-settings", label: "HR Settings" },
+    { key: "tickets", label: "Tickets", badge: ticketCount }, // ✅ shows pending count
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-6 md:p-12">
-      <header className="max-w-6xl mx-auto mb-10 text-center">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-indigo-600">
-          AI Workforce Planning
-        </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          Intelligent forecasting and automated scheduling for your entire team.
-        </p>
-      </header>
-
-      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-        {/* Left Column: Controls & Stats */}
-        <div className="space-y-6">
-
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center text-slate-800">
-              <Calendar className="mr-2 text-indigo-500" size={20} />
-              Schedule Generator
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Target Date</label>
-                <input
-                  type="date"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
-              </div>
-              <button
-                onClick={generateSchedule}
-                disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all flex justify-center items-center shadow-md disabled:opacity-70"
-              >
-                {loading ? <Loader2 className="animate-spin mr-2" size={20} /> : null}
-                {loading ? 'Generating...' : 'Generate New Schedule'}
-              </button>
-            </div>
-
-            {error && (
-              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg flex items-start text-sm border border-red-100">
-                <AlertCircle className="shrink-0 mr-2 mt-0.5" size={16} />
-                <p>{error}</p>
-              </div>
-            )}
+    <div className="min-h-screen bg-slate-900 text-white">
+      {/* Top bar */}
+      <div className="border-b border-slate-700/50 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">
+              AI Workforce Management
+            </h1>
+            <p className="text-xs text-slate-400">
+              Intelligent scheduling · Fairness-aware · Explainable AI
+            </p>
           </div>
+          <div className="flex gap-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition relative
+                  ${activeTab === tab.key ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-700"}`}
+              >
+                {tab.label}
+                {/* ✅ Red badge for pending tickets */}
+                {tab.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
-              <div className="bg-blue-100 p-3 rounded-full mb-3">
-                <Users className="text-blue-600" size={24} />
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* KPI row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {kpis.map((k) => (
+            <div
+              key={k.label}
+              className="bg-slate-800 rounded-xl p-4 flex items-center gap-3"
+            >
+              <div className={`${k.color} opacity-80`}>{k.icon}</div>
+              <div>
+                <p className="text-xs text-slate-400">{k.label}</p>
+                <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
               </div>
-              <h3 className="text-3xl font-bold text-slate-800">{employees.length}</h3>
-              <p className="text-sm text-slate-500 font-medium">Total Staff</p>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
-              <div className="bg-emerald-100 p-3 rounded-full mb-3">
-                <Activity className="text-emerald-600" size={24} />
+          ))}
+        </div>
+
+        {/* ── Dashboard ── */}
+        {activeTab === "dashboard" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="bg-slate-800 rounded-xl p-6 space-y-4">
+                <p className="text-sm font-semibold text-white">
+                  Schedule Generator
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    {
+                      label: "Overloaded",
+                      val: overloaded,
+                      cls: "bg-red-500/10 text-red-400",
+                    },
+                    {
+                      label: "Normal",
+                      val: normal,
+                      cls: "bg-green-500/10 text-green-400",
+                    },
+                    {
+                      label: "Underutilized",
+                      val: underutilized,
+                      cls: "bg-yellow-500/10 text-yellow-400",
+                    },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      className={`${s.cls} p-2 rounded text-center`}
+                    >
+                      <p className="text-xs opacity-80">{s.label}</p>
+                      <p className="font-bold text-lg">{s.val}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-slate-700/50 p-3 rounded-lg">
+                  <p className="text-indigo-400 text-xs font-medium mb-1">
+                    🧠 AI Insight
+                  </p>
+                  {overloaded > 0 ? (
+                    <p className="text-xs text-slate-300">
+                      {overloaded} employees exceed dept. baseline —
+                      redistribute before scheduling.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-green-400">
+                      All employees within normal range. Good time to generate a
+                      schedule.
+                    </p>
+                  )}
+                  {preferences.length > 0 && (
+                    <p className="text-xs text-indigo-300 mt-1">
+                      {preferences.length} employee preference(s) will be
+                      applied.
+                    </p>
+                  )}
+                  {constraints.enforceFairness && (
+                    <p className="text-xs text-teal-300 mt-1">
+                      Fairness balancing is active.
+                    </p>
+                  )}
+                  {/* ✅ Show pending tickets warning */}
+                  {ticketCount > 0 && (
+                    <p className="text-xs text-red-300 mt-1">
+                      ⚠ {ticketCount} pending leave ticket(s) — approve before
+                      generating schedule.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Schedule date
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full p-2 bg-slate-700 rounded text-white text-sm"
+                  />
+                </div>
+                <button
+                  onClick={generateSchedule}
+                  disabled={loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate Schedule"
+                  )}
+                </button>
+                {error && (
+                  <p className="text-red-400 text-xs flex items-center gap-1">
+                    <AlertCircle size={12} />
+                    {error}
+                  </p>
+                )}
               </div>
-              <h3 className="text-3xl font-bold text-slate-800">{workload.length}</h3>
-              <p className="text-sm text-slate-500 font-medium">Data Points</p>
+              <div className="lg:col-span-2">
+                <Charts workload={workload} aiData={aiData} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FairnessMeter aiData={aiData} />
+              <div className="md:col-span-2">
+                <DeptAnalytics aiData={aiData} />
+              </div>
             </div>
           </div>
         )}
 
-        </div>
-
-        {/* Right Column: Schedule Results */}
-        <div className="lg:col-span-2 space-y-6">
-          {schedule ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-linear-to-r from-indigo-50 to-blue-50 border-b border-slate-200 p-6 flex justify-between items-center sm:flex">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-800">Generated Schedule</h2>
-                  <p className="text-sm text-slate-500">{format(new Date(schedule.date), 'PPPP')}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-slate-500 font-medium">Predicted Demand</div>
-                  <div className="text-2xl font-bold tracking-tight text-indigo-700">{schedule.predicted_demand} Employees</div>
-                </div>
+        {/* ── Schedule ── */}
+        {activeTab === "schedule" && (
+          <div>
+            {!schedule || !schedule.date ? (
+              <div className="bg-slate-800 rounded-xl p-12 text-center">
+                <TrendingUp size={40} className="text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-400">No schedule generated yet.</p>
+                <button
+                  onClick={() => setActiveTab("dashboard")}
+                  className="mt-4 text-indigo-400 text-sm hover:underline"
+                >
+                  Go to dashboard →
+                </button>
               </div>
-
-              <div className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                        <th className="p-4 px-6">Employee</th>
-                        <th className="p-4 px-6">Skill</th>
-                        <th className="p-4 px-6">Assigned Shift</th>
-                        <th className="p-4 px-6">AI Explanation</th>
+            ) : (
+              <div className="bg-slate-800 rounded-xl overflow-hidden">
+                <div className="p-6 flex justify-between items-center border-b border-slate-700">
+                  <div>
+                    <h2 className="text-lg font-bold">Generated Schedule</h2>
+                    <p className="text-slate-400 text-sm">
+                      {format(new Date(schedule.date), "PPPP")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Excluded (hours)</p>
+                    <p className="text-orange-400 font-bold text-xl">
+                      {schedule.constraints_applied?.exceeded_hours ?? 0}
+                    </p>
+                  </div>
+                  <div className="flex gap-6 text-center">
+                    <div>
+                      <p className="text-xs text-slate-400">Total assigned</p>
+                      <p className="text-indigo-400 font-bold text-xl">
+                        {schedule.predicted_demand}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Max hours limit</p>
+                      <p className="text-teal-400 font-bold text-xl">
+                        {constraints.maxHours}h
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">On leave</p>
+                      <p className="text-red-400 font-bold text-xl">
+                        {schedule.constraints_applied?.on_leave ?? 0}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-700/50 text-slate-300">
+                    <tr>
+                      <th className="p-3 text-left">Employee</th>
+                      <th className="p-3 text-left">Department</th>
+                      <th className="p-3 text-left">Shift</th>
+                      <th className="p-3 text-left">Status</th>
+                      <th className="p-3 text-left">Score</th>
+                      <th className="p-3 text-left">AI Explanation</th>
+                      <th className="p-3 text-left">Skill Match</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schedule.schedule.map((emp) => (
+                      <tr
+                        key={emp.id}
+                        className="border-t border-slate-700/50 hover:bg-slate-700/30 transition"
+                      >
+                        <td className="p-3">
+                          <p className="font-medium">{emp.name}</p>
+                          <p className="text-xs text-slate-400">{emp.role}</p>
+                          {/* ✅ Half day badge */}
+                          {emp.half_day && (
+                            <span className="text-xs bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                              Half day
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 text-slate-300 text-xs">
+                          {emp.skill}
+                        </td>
+                        <td className="p-3">
+                          <ShiftBadge shift={emp.shift} />
+                        </td>
+                        <td className="p-3">
+                          <StatusBadge status={emp.status} />
+                        </td>
+                        <td className="p-3">
+                          <span className="text-xs text-slate-300 font-mono">
+                            {emp.workload_score}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="flex-1 bg-slate-700 rounded-full h-1.5"
+                                style={{ width: "60px" }}
+                              >
+                                <div
+                                  className={`h-1.5 rounded-full ${
+                                    (emp.skill_match ?? 50) >= 80
+                                      ? "bg-green-500"
+                                      : (emp.skill_match ?? 50) >= 50
+                                        ? "bg-yellow-500"
+                                        : "bg-red-500"
+                                  }`}
+                                  style={{ width: `${emp.skill_match ?? 50}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-slate-400 font-mono">
+                                {emp.skill_match ?? 50}%
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 max-w-xs">
+                          <ExplainCell emp={emp} />
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {schedule.schedule.length === 0 ? (
-                        <tr>
-                          <td colSpan="4" className="p-8 text-center text-slate-500">
-                            No employees could be scheduled based on constraints.
-                          </td>
-                        </tr>
-                      ) : (
-                        schedule.schedule.map((emp) => (
-                          <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="p-4 px-6 font-medium text-slate-900">{emp.name}</td>
-                            <td className="p-4 px-6">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {emp.skill}
-                              </span>
-                            </td>
-                            <td className="p-4 px-6">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${emp.shift === 'Morning' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                  emp.shift === 'Evening' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                    'bg-slate-800 text-slate-200 border-slate-700'
-                                }`}>
-                                {emp.shift}
-                              </span>
-                            </td>
-                            <td className="p-4 px-6">
-                              {explanationMap[emp.id] ? (
-                                <p className="text-sm text-slate-600 bg-slate-100 p-3 rounded-lg border border-slate-200">
-                                  "{explanationMap[emp.id]}"
-                                </p>
-                              ) : (
-                                <button
-                                  onClick={() => getExplanation(emp)}
-                                  disabled={explainingId === emp.id}
-                                  className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center transition-colors bg-indigo-50 hover:bg-indigo-100 py-1.5 px-3 rounded-lg"
-                                >
-                                  {explainingId === emp.id ? (
-                                    <><Loader2 className="animate-spin mr-1.5" size={14} /> Think...</>
-                                  ) : (
-                                    <><MessageSquare className="mr-1.5" size={14} /> Explain</>
-                                  )}
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Analytics ── */}
+        {activeTab === "analytics" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FairnessMeter aiData={aiData} />
+              <div className="bg-slate-800 rounded-xl p-4">
+                <p className="text-xs text-slate-400 mb-3 font-medium uppercase tracking-wide">
+                  Workforce Summary
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { label: "Total employees tracked", value: aiData.length },
+                    {
+                      label: "Overloaded",
+                      value: overloaded,
+                      color: "text-red-400",
+                    },
+                    { label: "Normal", value: normal, color: "text-green-400" },
+                    {
+                      label: "Underutilized",
+                      value: underutilized,
+                      color: "text-yellow-400",
+                    },
+                    {
+                      label: "Avg hours/day",
+                      value: aiData.length
+                        ? (
+                            aiData.reduce((s, e) => s + e.hours_worked, 0) /
+                            aiData.length
+                          ).toFixed(1)
+                        : "-",
+                    },
+                    {
+                      label: "Departments tracked",
+                      value: [...new Set(aiData.map((e) => e.department))]
+                        .length,
+                    },
+                    {
+                      label: "Pending tickets",
+                      value: ticketCount,
+                      color:
+                        ticketCount > 0 ? "text-red-400" : "text-green-400",
+                    },
+                  ].map((r) => (
+                    <div
+                      key={r.label}
+                      className="flex justify-between items-center py-1.5 border-b border-slate-700/50"
+                    >
+                      <span className="text-xs text-slate-400">{r.label}</span>
+                      <span
+                        className={`text-sm font-semibold ${r.color ?? "text-white"}`}
+                      >
+                        {r.value}
+                      </span>
+                      <SeasonalChart workload={workload} />
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 border-dashed p-12 flex flex-col items-center justify-center text-center h-full min-h-100">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                <Calendar className="text-slate-400" size={32} />
-              </div>
-              <h3 className="text-xl font-bold text-slate-700 mb-2">No Schedule Active</h3>
-              <p className="text-slate-500 max-w-sm">
-                Select a target date and generate a new workforce schedule to see assignments and AI explanations.
-              </p>
-            </div>
-          )}
-        </div>
+            <DeptAnalytics aiData={aiData} />
+          </div>
+        )}
 
-      </main>
+        {/* ── HR Settings ── */}
+        {activeTab === "hr-settings" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <HRConstraints
+              constraints={constraints}
+              setConstraints={setConstraints}
+            />
+
+            <EmployeePreferences
+              preferences={preferences}
+              setPreferences={setPreferences}
+            />
+
+            {/* MAIN CONTAINER */}
+            <div className="md:col-span-2 bg-slate-800 rounded-2xl p-6">
+              <p className="text-sm font-semibold text-white mb-5 flex items-center gap-2">
+                <Settings size={16} className="text-indigo-400" />
+                System Architecture
+              </p>
+
+              {/* GRID */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
+                {[
+                  {
+                    step: "1",
+                    label: "Data Ingestion",
+                    desc: "dummyjson API + CSV fallback",
+                    color: "bg-indigo-500/20 border-indigo-500/30",
+                  },
+                  {
+                    step: "2",
+                    label: "Demand Prediction",
+                    desc: "RandomForest · 90-day history",
+                    color: "bg-purple-500/20 border-purple-500/30",
+                  },
+                  {
+                    step: "3",
+                    label: "Constraint Modeling",
+                    desc: "Labor laws · Fairness rules",
+                    color: "bg-teal-500/20 border-teal-500/30",
+                  },
+                  {
+                    step: "4",
+                    label: "Schedule Generation",
+                    desc: "Dept-aware · Preference-based",
+                    color: "bg-amber-500/20 border-amber-500/30",
+                  },
+                  {
+                    step: "5",
+                    label: "AI Explainability",
+                    desc: "Rule-based NLG explanations",
+                    color: "bg-green-500/20 border-green-500/30",
+                  },
+                ].map((s) => (
+                  <div
+                    key={s.step}
+                    className={`${s.color} border rounded-2xl p-4 flex flex-col justify-between min-h-[380px]`}
+                  >
+                    {/* TOP TEXT */}
+                    <div className="text-center space-y-2">
+                      <p className="text-xs text-slate-400">Step {s.step}</p>
+                      <p className="text-sm font-semibold text-white">
+                        {s.label}
+                      </p>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        {s.desc}
+                      </p>
+                    </div>
+
+                    {/* SKILL CHECKER (FIXED CLEAN BLOCK) */}
+                    <div className="mt-4 bg-slate-900/60 rounded-xl p-4 border border-slate-700">
+                      <p className="text-xs font-semibold text-white mb-3 flex items-center justify-center gap-2">
+                        <Shield size={14} className="text-indigo-400" />
+                        Certification & Skill Checker
+                      </p>
+
+                      <SkillChecker />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ── Tickets ── */}
+        {activeTab === "tickets" && <Tickets onTicketUpdate={fetchData} />}
+      </div>
     </div>
   );
 }

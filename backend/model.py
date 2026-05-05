@@ -184,3 +184,49 @@ def seed_workload_csv():
         rows.append({'date': d.strftime('%Y-%m-%d'), 'demand': demand})
     pd.DataFrame(rows).to_csv(WORKLOAD_FILE, index=False)
     print(f"Seeded workload.csv with 90 days at {WORKLOAD_FILE}")
+
+SKILL_SHIFT_MAP = {
+    'Python':     ['Engineering', 'Research and Development'],
+    'SQL':        ['Engineering', 'Accounting', 'Research and Development'],
+    'Management': ['Human Resources', 'Product Management', 'Business Development'],
+    'Support':    ['Support', 'Services'],
+    'Legal':      ['Legal'],
+    'Finance':    ['Accounting', 'Business Development'],
+    'Marketing':  ['Marketing'],
+    'Sales':      ['Business Development', 'Marketing'],
+}
+
+CERTIFICATION_REQUIREMENT = {
+    'Engineering':              ['Python', 'SQL'],
+    'Research and Development': ['Python', 'SQL'],
+    'Legal':                    ['Legal'],
+    'Accounting':               ['Finance', 'SQL'],
+    'Human Resources':          ['Management'],
+    'Product Management':       ['Management'],
+    'Business Development':     ['Management', 'Sales'],
+    'Marketing':                ['Marketing', 'Sales'],
+    'Support':                  ['Support'],
+    'Services':                 ['Support'],
+}
+
+def match_skill_to_department(skills_str, department):
+    """
+    Returns a match score 0-100 based on how well
+    employee skills match department requirements.
+    """
+    if not skills_str or not department:
+        return 50  # neutral score if no data
+
+    employee_skills = [s.strip().lower() for s in skills_str.split(',')]
+    required        = CERTIFICATION_REQUIREMENT.get(department, [])
+
+    if not required:
+        return 50
+
+    matched = sum(
+        1 for req in required
+        if any(req.lower() in skill or skill in req.lower()
+               for skill in employee_skills)
+    )
+
+    return round((matched / len(required)) * 100)
