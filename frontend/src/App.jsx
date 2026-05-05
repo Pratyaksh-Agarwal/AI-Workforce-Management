@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { format, addDays } from "date-fns";
+import Tickets from "./Tickets";
+import SeasonalChart from "./SeasonalChart";
 import {
   Loader2,
   MessageSquare,
@@ -12,6 +14,7 @@ import {
   Settings,
   Shield,
   Star,
+  Ticket,
 } from "lucide-react";
 import Charts from "./charts";
 
@@ -105,6 +108,7 @@ function ExplainCell({ emp }) {
     );
   return (
     <div className="flex flex-col gap-1">
+      {/* BUTTON */}
       <button
         onClick={fetchExplanation}
         disabled={loading}
@@ -122,6 +126,20 @@ function ExplainCell({ emp }) {
           </>
         )}
       </button>
+
+      {/* AI BADGE */}
+      <span className="text-xs px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 w-fit">
+        ✦ AI Generated
+      </span>
+
+      {/* 🔥 THIS WAS MISSING */}
+      {explanation && (
+        <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-xs">
+          {explanation}
+        </p>
+      )}
+
+      {/* ERROR */}
       {error && (
         <span className="text-red-400 text-xs flex items-center gap-1">
           <AlertCircle size={10} />
@@ -131,7 +149,6 @@ function ExplainCell({ emp }) {
     </div>
   );
 }
-
 function FairnessMeter({ aiData }) {
   if (!aiData.length) return null;
   const hours = aiData.map((e) => e.hours_worked);
@@ -260,7 +277,6 @@ function DeptAnalytics({ aiData }) {
   );
 }
 
-// ── HR Constraint Panel ───────────────────────────────────────────────────────
 function HRConstraints({ constraints, setConstraints }) {
   return (
     <div className="bg-slate-800 rounded-xl p-6">
@@ -390,7 +406,6 @@ function HRConstraints({ constraints, setConstraints }) {
   );
 }
 
-// ── Employee Preference Panel ─────────────────────────────────────────────────
 function EmployeePreferences({ preferences, setPreferences }) {
   const [name, setName] = useState("");
   const [dept, setDept] = useState(DEPT_LIST[0]);
@@ -406,7 +421,6 @@ function EmployeePreferences({ preferences, setPreferences }) {
     setName("");
     setSkills("");
   };
-
   const remove = (idx) => setPreferences((p) => p.filter((_, i) => i !== idx));
 
   return (
@@ -415,7 +429,6 @@ function EmployeePreferences({ preferences, setPreferences }) {
         <Star size={16} className="text-indigo-400" />
         Employee Preferences
       </p>
-
       <div className="grid grid-cols-2 gap-2 mb-3">
         <input
           value={name}
@@ -454,7 +467,6 @@ function EmployeePreferences({ preferences, setPreferences }) {
       >
         Add Preference
       </button>
-
       {preferences.length === 0 && (
         <p className="text-xs text-slate-500 text-center">
           No preferences added yet
@@ -487,6 +499,125 @@ function EmployeePreferences({ preferences, setPreferences }) {
     </div>
   );
 }
+function SkillChecker() {
+  const [skills, setSkills] = useState("");
+  const [dept, setDept] = useState(DEPT_LIST[0]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const check = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/skill-match`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skills, department: dept }),
+      });
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Employee skills
+          </label>
+          <input
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            placeholder="e.g. Python, SQL, Management"
+            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Target department
+          </label>
+          <select
+            value={dept}
+            onChange={(e) => setDept(e.target.value)}
+            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none"
+          >
+            {DEPT_LIST.map((d) => (
+              <option key={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={check}
+          disabled={loading}
+          className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium text-white transition cursor-pointer"
+        >
+          {loading ? "Checking..." : "Check Skill Match"}
+        </button>
+      </div>
+
+      {result && (
+        <div className="bg-slate-700/50 rounded-xl p-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <p className="text-sm font-medium text-white">Match Result</p>
+            <span
+              className={`text-sm font-bold ${
+                result.match_score >= 80
+                  ? "text-green-400"
+                  : result.match_score >= 50
+                    ? "text-yellow-400"
+                    : "text-red-400"
+              }`}
+            >
+              {result.match_score}%
+            </span>
+          </div>
+          <div className="w-full bg-slate-600 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all ${
+                result.match_score >= 80
+                  ? "bg-green-500"
+                  : result.match_score >= 50
+                    ? "bg-yellow-500"
+                    : "bg-red-500"
+              }`}
+              style={{ width: `${result.match_score}%` }}
+            />
+          </div>
+          <p
+            className={`text-xs font-medium ${
+              result.match_score >= 80
+                ? "text-green-400"
+                : result.match_score >= 50
+                  ? "text-yellow-400"
+                  : "text-red-400"
+            }`}
+          >
+            {result.recommendation}
+          </p>
+          <div>
+            <p className="text-xs text-slate-400 mb-1">
+              Required for {result.department}:
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {result.required_skills.map((s) => (
+                <span
+                  key={s}
+                  className="px-2 py-0.5 bg-slate-600 text-slate-300 rounded text-xs"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 function App() {
@@ -494,6 +625,7 @@ function App() {
   const [workload, setWorkload] = useState([]);
   const [schedule, setSchedule] = useState(null);
   const [aiData, setAiData] = useState([]);
+  const [ticketCount, setTicketCount] = useState(0); // ✅ pending ticket count for badge
   const [selectedDate, setSelectedDate] = useState(
     format(addDays(new Date(), 1), "yyyy-MM-dd"),
   );
@@ -512,18 +644,20 @@ function App() {
   useEffect(() => {
     fetchData();
   }, []);
+
   const fetchData = async () => {
     try {
-      const [empRes, workRes, aiRes, demandRes] = await Promise.all([
+      const [empRes, workRes, aiRes, demandRes, ticketRes] = await Promise.all([
         axios.get(`${API_BASE}/employees`),
         axios.get(`${API_BASE}/workload`),
         axios.get(`${API_BASE}/ai-insights`),
-        axios.get(`${API_BASE}/predicted-demand`), // ✅ new
+        axios.get(`${API_BASE}/predicted-demand`),
+        axios.get(`${API_BASE}/tickets/summary`), // ✅ fetch pending ticket count
       ]);
       setEmployees(empRes.data);
       setWorkload(workRes.data);
       setAiData(aiRes.data);
-      // ✅ Pre-fill predicted demand so dashboard doesn't show "-"
+      setTicketCount(ticketRes.data.pending);
       setSchedule(
         (prev) =>
           prev ?? {
@@ -595,6 +729,15 @@ function App() {
     },
   ];
 
+  // Tab definitions with optional badge
+  const tabs = [
+    { key: "dashboard", label: "Dashboard" },
+    { key: "schedule", label: "Schedule" },
+    { key: "analytics", label: "Analytics" },
+    { key: "hr-settings", label: "HR Settings" },
+    { key: "tickets", label: "Tickets", badge: ticketCount }, // ✅ shows pending count
+  ];
+
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       {/* Top bar */}
@@ -609,18 +752,22 @@ function App() {
             </p>
           </div>
           <div className="flex gap-1">
-            {["dashboard", "schedule", "analytics", "hr-settings"].map(
-              (tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition
-                  ${activeTab === tab ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-700"}`}
-                >
-                  {tab === "hr-settings" ? "HR Settings" : tab}
-                </button>
-              ),
-            )}
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition relative
+                  ${activeTab === tab.key ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-700"}`}
+              >
+                {tab.label}
+                {/* ✅ Red badge for pending tickets */}
+                {tab.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -703,6 +850,13 @@ function App() {
                       Fairness balancing is active.
                     </p>
                   )}
+                  {/* ✅ Show pending tickets warning */}
+                  {ticketCount > 0 && (
+                    <p className="text-xs text-red-300 mt-1">
+                      ⚠ {ticketCount} pending leave ticket(s) — approve before
+                      generating schedule.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-xs text-slate-400 mb-1 block">
@@ -737,11 +891,7 @@ function App() {
                 )}
               </div>
               <div className="lg:col-span-2">
-                <Charts
-                  workload={workload}
-                  employees={employees}
-                  aiData={aiData}
-                />
+                <Charts workload={workload} aiData={aiData} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -756,7 +906,7 @@ function App() {
         {/* ── Schedule ── */}
         {activeTab === "schedule" && (
           <div>
-            {!schedule ? (
+            {!schedule || !schedule.date ? (
               <div className="bg-slate-800 rounded-xl p-12 text-center">
                 <TrendingUp size={40} className="text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-400">No schedule generated yet.</p>
@@ -776,6 +926,12 @@ function App() {
                       {format(new Date(schedule.date), "PPPP")}
                     </p>
                   </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Excluded (hours)</p>
+                    <p className="text-orange-400 font-bold text-xl">
+                      {schedule.constraints_applied?.exceeded_hours ?? 0}
+                    </p>
+                  </div>
                   <div className="flex gap-6 text-center">
                     <div>
                       <p className="text-xs text-slate-400">Total assigned</p>
@@ -790,11 +946,9 @@ function App() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">
-                        Preferences applied
-                      </p>
-                      <p className="text-purple-400 font-bold text-xl">
-                        {preferences.length}
+                      <p className="text-xs text-slate-400">On leave</p>
+                      <p className="text-red-400 font-bold text-xl">
+                        {schedule.constraints_applied?.on_leave ?? 0}
                       </p>
                     </div>
                   </div>
@@ -808,6 +962,7 @@ function App() {
                       <th className="p-3 text-left">Status</th>
                       <th className="p-3 text-left">Score</th>
                       <th className="p-3 text-left">AI Explanation</th>
+                      <th className="p-3 text-left">Skill Match</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -819,6 +974,12 @@ function App() {
                         <td className="p-3">
                           <p className="font-medium">{emp.name}</p>
                           <p className="text-xs text-slate-400">{emp.role}</p>
+                          {/* ✅ Half day badge */}
+                          {emp.half_day && (
+                            <span className="text-xs bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                              Half day
+                            </span>
+                          )}
                         </td>
                         <td className="p-3 text-slate-300 text-xs">
                           {emp.skill}
@@ -833,6 +994,30 @@ function App() {
                           <span className="text-xs text-slate-300 font-mono">
                             {emp.workload_score}
                           </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="flex-1 bg-slate-700 rounded-full h-1.5"
+                                style={{ width: "60px" }}
+                              >
+                                <div
+                                  className={`h-1.5 rounded-full ${
+                                    (emp.skill_match ?? 50) >= 80
+                                      ? "bg-green-500"
+                                      : (emp.skill_match ?? 50) >= 50
+                                        ? "bg-yellow-500"
+                                        : "bg-red-500"
+                                  }`}
+                                  style={{ width: `${emp.skill_match ?? 50}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-slate-400 font-mono">
+                                {emp.skill_match ?? 50}%
+                              </span>
+                            </div>
+                          </div>
                         </td>
                         <td className="p-3 max-w-xs">
                           <ExplainCell emp={emp} />
@@ -883,6 +1068,12 @@ function App() {
                       value: [...new Set(aiData.map((e) => e.department))]
                         .length,
                     },
+                    {
+                      label: "Pending tickets",
+                      value: ticketCount,
+                      color:
+                        ticketCount > 0 ? "text-red-400" : "text-green-400",
+                    },
                   ].map((r) => (
                     <div
                       key={r.label}
@@ -894,6 +1085,7 @@ function App() {
                       >
                         {r.value}
                       </span>
+                      <SeasonalChart workload={workload} />
                     </div>
                   ))}
                 </div>
@@ -910,16 +1102,21 @@ function App() {
               constraints={constraints}
               setConstraints={setConstraints}
             />
+
             <EmployeePreferences
               preferences={preferences}
               setPreferences={setPreferences}
             />
-            <div className="md:col-span-2 bg-slate-800 rounded-xl p-6">
-              <p className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+
+            {/* MAIN CONTAINER */}
+            <div className="md:col-span-2 bg-slate-800 rounded-2xl p-6">
+              <p className="text-sm font-semibold text-white mb-5 flex items-center gap-2">
                 <Settings size={16} className="text-indigo-400" />
                 System Architecture
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+
+              {/* GRID */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
                 {[
                   {
                     step: "1",
@@ -954,17 +1151,36 @@ function App() {
                 ].map((s) => (
                   <div
                     key={s.step}
-                    className={`${s.color} border rounded-xl p-3 text-center`}
+                    className={`${s.color} border rounded-2xl p-4 flex flex-col justify-between min-h-[380px]`}
                   >
-                    <p className="text-xs text-slate-400 mb-1">Step {s.step}</p>
-                    <p className="text-sm font-medium text-white">{s.label}</p>
-                    <p className="text-xs text-slate-400 mt-1">{s.desc}</p>
+                    {/* TOP TEXT */}
+                    <div className="text-center space-y-2">
+                      <p className="text-xs text-slate-400">Step {s.step}</p>
+                      <p className="text-sm font-semibold text-white">
+                        {s.label}
+                      </p>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        {s.desc}
+                      </p>
+                    </div>
+
+                    {/* SKILL CHECKER (FIXED CLEAN BLOCK) */}
+                    <div className="mt-4 bg-slate-900/60 rounded-xl p-4 border border-slate-700">
+                      <p className="text-xs font-semibold text-white mb-3 flex items-center justify-center gap-2">
+                        <Shield size={14} className="text-indigo-400" />
+                        Certification & Skill Checker
+                      </p>
+
+                      <SkillChecker />
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
         )}
+        {/* ── Tickets ── */}
+        {activeTab === "tickets" && <Tickets onTicketUpdate={fetchData} />}
       </div>
     </div>
   );

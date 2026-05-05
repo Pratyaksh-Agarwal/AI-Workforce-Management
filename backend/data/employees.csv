@@ -1,101 +1,101 @@
 employee_id,name,department,company,role,age,hours_worked,tasks_completed
-1,Emily Johnson,Engineering,"Dooley, Kozey and Cronin",Sales Manager,29,6.9,5
-2,Michael Williams,Support,Spinka - Dickinson,Support Specialist,36,6.8,2
-3,Sophia Brown,Research and Development,Schiller - Zieme,Accountant,43,9.7,3
-4,James Davis,Support,Pagac and Sons,Research Analyst,46,6.4,6
-5,Emma Miller,Human Resources,Graham - Gulgowski,Quality Assurance Engineer,31,6.2,7
-6,Olivia Wilson,Product Management,Pfannerstill Inc,Research Analyst,23,6.5,5
-7,Alexander Jones,Engineering,Dickens - Beahan,Web Developer,39,9.4,3
-8,Ava Taylor,Marketing,Nikolaus Inc,Chief Executive Officer,28,5.9,2
-9,Ethan Martinez,Support,Gorczany - Gottlieb,Legal Counsel,34,9.6,6
-10,Isabella Anderson,Marketing,Pollich - Hilpert,Chief Financial Officer,32,8.3,5
-11,Liam Garcia,Services,Considine - Torp,Web Developer,30,6.9,5
-12,Mia Rodriguez,Accounting,"Miller, Schowalter and Wisozk",Business Analyst,25,7.8,2
-13,Noah Hernandez,Engineering,"Botsford, Marquardt and Roberts",Database Administrator,41,10.0,1
-14,Charlotte Lopez,Accounting,Zulauf and Sons,Chief Executive Officer,37,5.8,4
-15,William Gonzalez,Marketing,Spinka - Dickinson,Software Architect,33,4.0,9
-16,Avery Perez,Accounting,Herzog Inc,Database Administrator,26,6.5,3
-17,Evelyn Sanchez,Support,Predovic - Johns,Chief Financial Officer,38,10.0,6
-18,Logan Torres,Training,Jast - Nader,Data Analyst,32,6.8,4
-19,Abigail Rivera,Human Resources,Prohaska - Thiel,Business Analyst,29,6.0,1
-20,Jackson Evans,Legal,Kuhlman LLC,Web Developer,35,9.8,4
-21,Madison Collins,Engineering,Mayer - Smitham,Chief Technology Officer,27,10.2,7
-22,Elijah Stewart,Legal,Langworth Group,Business Analyst,34,7.4,4
-23,Chloe Morales,Sales,Grady LLC,Database Administrator,40,7.6,4
-24,Mateo Nguyen,Accounting,Spinka LLC,Business Analyst,31,7.5,1
-25,Harper Kelly,Legal,"Leffler, Rolfson and Becker",Business Development Manager,28,6.4,3
-26,Evelyn Gonzalez,Accounting,"Tromp, Gaylord and Weber",Project Manager,36,7.1,5
-27,Daniel Cook,Support,"Morissette, Baumbach and Auer",Legal Counsel,42,10.5,3
-28,Lily Lee,Product Management,Cremin Inc,Quality Assurance Engineer,30,8.5,2
-29,Henry Hill,Services,"Gerlach, Funk and Schoen",Sales Manager,39,8.7,5
-30,Addison Wright,Services,Kreiger Inc,Human Resources Manager,33,5.7,4
-31,Gabriel Adams,Accounting,"Miller, Schowalter and Wisozk",Technical Support Engineer,37,4.4,5
-32,Natalie Harris,Research and Development,Mante LLC,Accountant,29,8.2,4
-33,Carter Baker,Product Management,Luettgen and Sons,Software Engineer,32,9.7,4
-34,Sofia Mitchell,Research and Development,"Berge, Reinger and Oberbrunner",Engineer,26,7.7,3
-35,Jack Ward,Legal,Keebler and Sons,Chief Information Officer,30,7.1,7
-36,Harper Turner,Engineering,Ritchie and Sons,Marketing Manager,34,10.0,6
-37,Mason Parker,Engineering,Kihn - Thompson,Developer,35,6.3,3
-38,Aria Roberts,Legal,Sanford and Sons,Database Administrator,27,7.8,4
-39,Lucas Gray,Accounting,Fadel Inc,Chief Operating Officer,31,7.9,2
-40,Ella Adams,Human Resources,Cassin Group,Chief Technology Officer,28,7.3,2
-41,Evan Reed,Human Resources,Jacobs - Nader,Business Analyst,33,4.1,4
-42,Avery Carter,Support,Schmidt - Hyatt,Sales Manager,29,7.8,3
-43,Benjamin Foster,Product Management,Kuhlman LLC,Technical Support Engineer,35,6.2,2
-44,Scarlett Wright,Legal,Schmeler - Spinka,Chief Financial Officer,27,8.6,3
-45,Lincoln Kelly,Research and Development,Johnson and Sons,Legal Counsel,31,9.9,3
-46,Hannah Robinson,Engineering,Weber Inc,Technical Support Engineer,30,6.3,7
-47,Nicholas Bailey,Research and Development,"Runolfsson, Kohler and Welch",Chief Financial Officer,36,9.3,6
-48,Luna Russell,Marketing,Moore Inc,Research Analyst,28,6.7,6
-49,Jacob Cooper,Engineering,"Kessler, Kozey and Simonis",Chief Executive Officer,32,7.2,6
-50,Stella Hughes,Research and Development,Ernser Group,Database Administrator,34,8.9,6
-51,Eli Bennett,Accounting,"Waters, Ankunding and Green",Chief Operating Officer,30,8.1,1
-52,Grace Perry,Human Resources,Cassin Group,Database Administrator,27,4.8,5
-53,Lucas Gordon,Human Resources,Von Inc,Project Manager,36,6.8,7
-54,Ava Harrison,Engineering,Blanda - Jacobson,Legal Counsel,29,12.0,3
-55,Owen Fisher,Human Resources,Hilpert Inc,Chief Financial Officer,32,6.2,4
-56,Samantha Howard,Services,Grady LLC,Sales Manager,31,3.6,7
-57,Nathan Dixon,Sales,Von Inc,Engineer,35,6.7,4
-58,Bella Grant,Product Management,"Weissnat, Wyman and Turner",Project Manager,28,6.1,4
-59,Ethan Fletcher,Training,Halvorson LLC,Data Scientist,34,7.1,6
-60,Lillian Simmons,Business Development,"Will, Stamm and Zieme",Legal Counsel,33,7.2,4
-61,Mason Pearson,Research and Development,Langworth Group,Developer,29,9.0,3
-62,Leah Henderson,Services,"Kuhic, Romaguera and Funk",Web Developer,27,8.1,5
-63,Logan Lawson,Engineering,Stark and Sons,Chief Technology Officer,34,7.5,4
-64,Avery Barnes,Marketing,"Nicolas, Adams and West",Data Scientist,30,7.5,4
-65,Caleb Perkins,Engineering,"Sawayn, Koss and Medhurst",Chief Financial Officer,31,9.6,7
-66,Aria Ferguson,Legal,"Wisozk, Schamberger and Huels",Project Manager,28,8.8,7
-67,Gabriel Hayes,Marketing,"Schaefer, Hackett and Kreiger",Technical Support Engineer,35,10.4,3
-68,Layla Sullivan,Legal,"Carroll, Kuphal and Durgan",Chief Technology Officer,26,8.0,3
-69,Christopher West,Legal,"Grant, Jacobson and Ankunding",Database Administrator,32,5.0,2
-70,Zoe Nicholson,Human Resources,Marks LLC,Research Analyst,33,4.6,3
-71,Nolan Bryant,Legal,Ziemann - Rau,Project Manager,30,6.8,2
-72,Victoria McDonald,Services,"Auer, Hettinger and Bradtke",Support Specialist,28,8.7,4
-73,Max Russell,Accounting,Ullrich LLC,Product Manager,35,8.4,5
-74,Penelope Harper,Legal,"Auer, Hettinger and Bradtke",Engineer,29,7.2,4
-75,Ryan Graham,Engineering,Dooley LLC,Chief Executive Officer,32,10.0,1
-76,Madeline Simpson,Product Management,King - Muller,Web Developer,27,6.6,3
-77,Jonathan Pierce,Training,"Carroll, Kuphal and Durgan",Business Analyst,34,7.5,4
-78,Eleanor Tyler,Product Management,Hilpert and Sons,Web Developer,31,10.2,4
-79,Isaac Lawrence,Marketing,Jacobi - Miller,Chief Financial Officer,33,5.4,2
-80,Hazel Gardner,Business Development,Nolan Group,Systems Analyst,28,9.7,5
-81,Austin Hudson,Sales,Okuneva Group,Legal Counsel,30,7.1,2
-82,Lillian Bishop,Research and Development,Rippin Inc,Research Analyst,27,9.4,4
-83,Dylan Wells,Services,Schmidt - Hyatt,Support Specialist,35,5.0,2
-84,Aaliyah Hanson,Accounting,Marvin Inc,Quality Assurance Engineer,29,8.4,3
-85,Cameron Burke,Training,"Barton, Blick and Osinski",Business Analyst,32,7.1,1
-86,Nora Mills,Business Development,Hahn - Lakin,Chief Information Officer,27,6.9,4
-87,Hunter Gordon,Support,Stark and Sons,Chief Information Officer,34,9.5,9
-88,Aubrey Wagner,Sales,Cassin Group,Engineer,31,5.4,3
-89,Brayden Fleming,Human Resources,Stiedemann LLC,Chief Technology Officer,33,5.1,4
-90,Scarlett Bowman,Sales,Wisozk - Feeney,Software Engineer,28,8.0,5
-91,Levi Hicks,Product Management,Quitzon LLC,Software Architect,30,6.5,1
-92,Autumn Gomez,Product Management,Kuhlman LLC,Business Analyst,27,7.1,7
-93,Julian Newton,Engineering,"Considine, Heathcote and Abernathy",Research Analyst,35,10.1,5
-94,Ruby Andrews,Marketing,Kohler and Sons,Human Resources Manager,29,7.2,6
-95,Miles Stevenson,Marketing,"Hudson, Labadie and Greenfelder",Developer,32,5.0,4
-96,Aurora Lawson,Product Management,Hudson - Marquardt,Chief Information Officer,27,4.2,2
-97,Oscar Powers,Legal,Luettgen and Sons,Support Specialist,34,10.6,5
-98,Clara Berry,Training,Mayer - Smitham,Accountant,31,10.3,3
-99,Gavin Stanley,Marketing,"Strosin, Anderson and Baumbach",Support Specialist,33,8.9,2
-100,Lila Hudson,Legal,"Hartmann, Hilpert and Kulas",Sales Manager,28,7.8,7
+1,Emily Johnson,Engineering,"Dooley, Kozey and Cronin",Sales Manager,29,9.6,5
+2,Michael Williams,Support,Spinka - Dickinson,Support Specialist,36,4.2,6
+3,Sophia Brown,Research and Development,Schiller - Zieme,Accountant,43,9.9,4
+4,James Davis,Support,Pagac and Sons,Research Analyst,46,7.0,5
+5,Emma Miller,Human Resources,Graham - Gulgowski,Quality Assurance Engineer,31,6.7,3
+6,Olivia Wilson,Product Management,Pfannerstill Inc,Research Analyst,23,4.8,7
+7,Alexander Jones,Engineering,Dickens - Beahan,Web Developer,39,8.6,2
+8,Ava Taylor,Marketing,Nikolaus Inc,Chief Executive Officer,28,5.4,2
+9,Ethan Martinez,Support,Gorczany - Gottlieb,Legal Counsel,34,8.5,3
+10,Isabella Anderson,Marketing,Pollich - Hilpert,Chief Financial Officer,32,8.9,5
+11,Liam Garcia,Services,Considine - Torp,Web Developer,30,5.6,4
+12,Mia Rodriguez,Accounting,"Miller, Schowalter and Wisozk",Business Analyst,25,6.1,1
+13,Noah Hernandez,Engineering,"Botsford, Marquardt and Roberts",Database Administrator,41,8.3,3
+14,Charlotte Lopez,Accounting,Zulauf and Sons,Chief Executive Officer,37,9.0,7
+15,William Gonzalez,Marketing,Spinka - Dickinson,Software Architect,33,6.6,5
+16,Avery Perez,Accounting,Herzog Inc,Database Administrator,26,7.3,3
+17,Evelyn Sanchez,Support,Predovic - Johns,Chief Financial Officer,38,4.9,9
+18,Logan Torres,Training,Jast - Nader,Data Analyst,32,8.6,4
+19,Abigail Rivera,Human Resources,Prohaska - Thiel,Business Analyst,29,6.1,3
+20,Jackson Evans,Legal,Kuhlman LLC,Web Developer,35,7.7,8
+21,Madison Collins,Engineering,Mayer - Smitham,Chief Technology Officer,27,8.8,4
+22,Elijah Stewart,Legal,Langworth Group,Business Analyst,34,8.5,4
+23,Chloe Morales,Sales,Grady LLC,Database Administrator,40,9.4,7
+24,Mateo Nguyen,Accounting,Spinka LLC,Business Analyst,31,7.4,3
+25,Harper Kelly,Legal,"Leffler, Rolfson and Becker",Business Development Manager,28,8.2,5
+26,Evelyn Gonzalez,Accounting,"Tromp, Gaylord and Weber",Project Manager,36,7.0,5
+27,Daniel Cook,Support,"Morissette, Baumbach and Auer",Legal Counsel,42,6.6,4
+28,Lily Lee,Product Management,Cremin Inc,Quality Assurance Engineer,30,7.0,4
+29,Henry Hill,Services,"Gerlach, Funk and Schoen",Sales Manager,39,5.9,7
+30,Addison Wright,Services,Kreiger Inc,Human Resources Manager,33,7.5,7
+31,Gabriel Adams,Accounting,"Miller, Schowalter and Wisozk",Technical Support Engineer,37,4.1,5
+32,Natalie Harris,Research and Development,Mante LLC,Accountant,29,6.9,5
+33,Carter Baker,Product Management,Luettgen and Sons,Software Engineer,32,7.9,5
+34,Sofia Mitchell,Research and Development,"Berge, Reinger and Oberbrunner",Engineer,26,8.5,1
+35,Jack Ward,Legal,Keebler and Sons,Chief Information Officer,30,9.5,6
+36,Harper Turner,Engineering,Ritchie and Sons,Marketing Manager,34,6.1,4
+37,Mason Parker,Engineering,Kihn - Thompson,Developer,35,9.1,5
+38,Aria Roberts,Legal,Sanford and Sons,Database Administrator,27,8.4,4
+39,Lucas Gray,Accounting,Fadel Inc,Chief Operating Officer,31,8.9,7
+40,Ella Adams,Human Resources,Cassin Group,Chief Technology Officer,28,5.4,7
+41,Evan Reed,Human Resources,Jacobs - Nader,Business Analyst,33,5.7,5
+42,Avery Carter,Support,Schmidt - Hyatt,Sales Manager,29,10.0,7
+43,Benjamin Foster,Product Management,Kuhlman LLC,Technical Support Engineer,35,7.2,5
+44,Scarlett Wright,Legal,Schmeler - Spinka,Chief Financial Officer,27,10.2,3
+45,Lincoln Kelly,Research and Development,Johnson and Sons,Legal Counsel,31,9.8,2
+46,Hannah Robinson,Engineering,Weber Inc,Technical Support Engineer,30,6.7,6
+47,Nicholas Bailey,Research and Development,"Runolfsson, Kohler and Welch",Chief Financial Officer,36,11.2,3
+48,Luna Russell,Marketing,Moore Inc,Research Analyst,28,7.6,6
+49,Jacob Cooper,Engineering,"Kessler, Kozey and Simonis",Chief Executive Officer,32,7.2,4
+50,Stella Hughes,Research and Development,Ernser Group,Database Administrator,34,9.1,5
+51,Eli Bennett,Accounting,"Waters, Ankunding and Green",Chief Operating Officer,30,7.0,5
+52,Grace Perry,Human Resources,Cassin Group,Database Administrator,27,6.6,3
+53,Lucas Gordon,Human Resources,Von Inc,Project Manager,36,4.9,7
+54,Ava Harrison,Engineering,Blanda - Jacobson,Legal Counsel,29,6.9,4
+55,Owen Fisher,Human Resources,Hilpert Inc,Chief Financial Officer,32,8.3,4
+56,Samantha Howard,Services,Grady LLC,Sales Manager,31,6.7,4
+57,Nathan Dixon,Sales,Von Inc,Engineer,35,8.7,5
+58,Bella Grant,Product Management,"Weissnat, Wyman and Turner",Project Manager,28,6.7,4
+59,Ethan Fletcher,Training,Halvorson LLC,Data Scientist,34,6.7,6
+60,Lillian Simmons,Business Development,"Will, Stamm and Zieme",Legal Counsel,33,8.1,8
+61,Mason Pearson,Research and Development,Langworth Group,Developer,29,7.1,4
+62,Leah Henderson,Services,"Kuhic, Romaguera and Funk",Web Developer,27,4.6,3
+63,Logan Lawson,Engineering,Stark and Sons,Chief Technology Officer,34,10.1,4
+64,Avery Barnes,Marketing,"Nicolas, Adams and West",Data Scientist,30,4.3,4
+65,Caleb Perkins,Engineering,"Sawayn, Koss and Medhurst",Chief Financial Officer,31,10.6,2
+66,Aria Ferguson,Legal,"Wisozk, Schamberger and Huels",Project Manager,28,9.3,5
+67,Gabriel Hayes,Marketing,"Schaefer, Hackett and Kreiger",Technical Support Engineer,35,8.0,3
+68,Layla Sullivan,Legal,"Carroll, Kuphal and Durgan",Chief Technology Officer,26,8.5,4
+69,Christopher West,Legal,"Grant, Jacobson and Ankunding",Database Administrator,32,8.3,4
+70,Zoe Nicholson,Human Resources,Marks LLC,Research Analyst,33,4.3,4
+71,Nolan Bryant,Legal,Ziemann - Rau,Project Manager,30,12.6,9
+72,Victoria McDonald,Services,"Auer, Hettinger and Bradtke",Support Specialist,28,6.9,5
+73,Max Russell,Accounting,Ullrich LLC,Product Manager,35,5.9,3
+74,Penelope Harper,Legal,"Auer, Hettinger and Bradtke",Engineer,29,8.5,4
+75,Ryan Graham,Engineering,Dooley LLC,Chief Executive Officer,32,7.4,6
+76,Madeline Simpson,Product Management,King - Muller,Web Developer,27,8.3,4
+77,Jonathan Pierce,Training,"Carroll, Kuphal and Durgan",Business Analyst,34,8.8,2
+78,Eleanor Tyler,Product Management,Hilpert and Sons,Web Developer,31,8.0,3
+79,Isaac Lawrence,Marketing,Jacobi - Miller,Chief Financial Officer,33,5.1,4
+80,Hazel Gardner,Business Development,Nolan Group,Systems Analyst,28,7.3,7
+81,Austin Hudson,Sales,Okuneva Group,Legal Counsel,30,6.8,4
+82,Lillian Bishop,Research and Development,Rippin Inc,Research Analyst,27,9.1,3
+83,Dylan Wells,Services,Schmidt - Hyatt,Support Specialist,35,7.9,7
+84,Aaliyah Hanson,Accounting,Marvin Inc,Quality Assurance Engineer,29,6.0,1
+85,Cameron Burke,Training,"Barton, Blick and Osinski",Business Analyst,32,6.3,6
+86,Nora Mills,Business Development,Hahn - Lakin,Chief Information Officer,27,6.5,1
+87,Hunter Gordon,Support,Stark and Sons,Chief Information Officer,34,6.8,9
+88,Aubrey Wagner,Sales,Cassin Group,Engineer,31,6.1,5
+89,Brayden Fleming,Human Resources,Stiedemann LLC,Chief Technology Officer,33,2.0,3
+90,Scarlett Bowman,Sales,Wisozk - Feeney,Software Engineer,28,9.5,3
+91,Levi Hicks,Product Management,Quitzon LLC,Software Architect,30,7.9,1
+92,Autumn Gomez,Product Management,Kuhlman LLC,Business Analyst,27,8.1,4
+93,Julian Newton,Engineering,"Considine, Heathcote and Abernathy",Research Analyst,35,8.2,8
+94,Ruby Andrews,Marketing,Kohler and Sons,Human Resources Manager,29,6.5,4
+95,Miles Stevenson,Marketing,"Hudson, Labadie and Greenfelder",Developer,32,7.0,2
+96,Aurora Lawson,Product Management,Hudson - Marquardt,Chief Information Officer,27,3.9,2
+97,Oscar Powers,Legal,Luettgen and Sons,Support Specialist,34,6.1,3
+98,Clara Berry,Training,Mayer - Smitham,Accountant,31,10.4,3
+99,Gavin Stanley,Marketing,"Strosin, Anderson and Baumbach",Support Specialist,33,7.7,3
+100,Lila Hudson,Legal,"Hartmann, Hilpert and Kulas",Sales Manager,28,8.4,6
